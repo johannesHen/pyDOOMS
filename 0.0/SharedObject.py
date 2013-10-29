@@ -16,21 +16,6 @@ class SharedObject(object):
         self.__dict__[name] = value
 
 
-    def __setattr__(self, attr, value):
-        #if ((attr in self.getSubclassAttr()) or (attr not in self.getAllAttr())): # Move?!?!
-
-        self.__dict__[attr] = value
-        #manager.comm.addOutgoingUpdate(self.ID, attr, value)
-        #else:
-        #    self.__dict__[attr] = value
-
-    '''def getSubclassAttr(self):
-        return set(dir(self))-set(dir(SharedObject))
-
-    def getAllAttr(self):
-        return set(dir(self)) | set(dir(SharedObject))'''
-
-
 def get(i):
     obj = getObject(i)
     if (obj is not None):
