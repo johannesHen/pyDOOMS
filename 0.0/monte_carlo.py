@@ -32,7 +32,15 @@ totalClients = 4
 
 darts = darts / totalClients
 
-board = Board(myname)
+if myname == 0:
+    Board(0)
+    Board(1)
+    Board(2)
+    Board(3)
+
+
+SharedObject.barrier()
+board = SharedObject.get(myname)
 
 # Compute
 while (darts > 0):
