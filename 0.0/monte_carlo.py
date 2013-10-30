@@ -27,7 +27,7 @@ class Board(SharedObject.SharedObject):
 start = time.time()
 myname = eval(sys.argv[1])
 
-darts = 2000000
+darts = 4000000
 totalClients = 4
 
 darts = darts / totalClients
@@ -81,5 +81,7 @@ if myname == 0:
     print "Pi: " + str(pi / totalClients) + " calculated in",time.time() - start
 
 else:
-    time.sleep(1)
     print "Client",myname," dead. Worked for",time.time() - start, "seconds."
+
+SharedObject.shutdown()
+

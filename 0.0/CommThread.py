@@ -1,8 +1,10 @@
+from mpi4py import MPI
 import threading
+import Queue
 import time
 import logging
-import Queue
-from mpi4py import MPI
+
+
 
 class CommThread(threading.Thread):
     """
@@ -15,6 +17,7 @@ class CommThread(threading.Thread):
     BARRIER_DONE = 3
     BARRIER_SENDS_DONE = 4
     OUTGOING_UPDATE = 5
+    SHUTDOWN = 6
 
     comm = MPI.COMM_WORLD
     size = MPI.COMM_WORLD.Get_size()
@@ -33,6 +36,7 @@ class CommThread(threading.Thread):
         self.receiveQueue = rQueue
         self.barrierUp = False
         self.barrierAcks = self.size - 1
+        self.running = True
 
     def broadcast(self, msg, tag):
         for i in [x for x in range(self.size) if x != self.rank]:
@@ -100,7 +104,7 @@ class CommThread(threading.Thread):
     def run(self):
         #logging.debug("Process " + str(self.communication.comm.rank) + " - New CommThread starting")
 
-        while (True):
+        while (self.running):
             try:
                 (cmd, msg) = self.sendQueue.get(False)
                 if (cmd == self.SPREAD_OBJECT):
@@ -115,6 +119,9 @@ class CommThread(threading.Thread):
                         self.sendUpdate(self.outgoingUpdates[0])
                         self.outgoingUpdates.pop(0)
                     self.outgoingUpdates.append(msg)
+                elif (cmd == self.SHUTDOWN):
+                    logging.debug("Shutting down")
+                    self.running = False
             except Queue.Empty:
                 if (self.comm.Iprobe(MPI.ANY_SOURCE, self.SPREAD_OBJECT)):
                     msg = self.comm.recv(source=MPI.ANY_SOURCE, tag=self.SPREAD_OBJECT)

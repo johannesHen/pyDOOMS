@@ -23,6 +23,9 @@ def getObject(id):
 def barrier():
     manager.comm.comm_barrier()
 
+def shutdown():
+    manager.comm.commShutdown()
+
 
 
 manager = Manager()
