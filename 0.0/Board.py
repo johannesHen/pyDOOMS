@@ -1,11 +1,12 @@
-import PyDOOMS
+from PyDOOMS import SharedObject
 
-class Board(PyDOOMS.SharedObject):
+class Board(SharedObject):
     """
-    Class representing a board
+    Class representing a board in the monte-carlo algorithm
     """
+
     def __init__(self, ID):
-        PyDOOMS.SharedObject.__init__(self, ID)
+        SharedObject.__init__(self, ID)
         self.hits = 0
         self.darts = 0
         self.ready = False
