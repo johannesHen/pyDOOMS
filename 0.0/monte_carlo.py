@@ -1,3 +1,11 @@
+"""
+A basic monte-carlo implementation for calculating pi.
+Assumes the argument supplied to the nodes is the node ID, starting from 0
+
+Node 0 creates the shared objects and sums the result,
+all other nodes fetches the objects and work on one object each
+"""
+
 import PyDOOMS
 from Board import Board
 import random, math, time, sys
@@ -40,12 +48,11 @@ while (darts > 0):
     darts = darts - 1
 board.ready = True
 
-PyDOOMS.comm.addOutgoingUpdate(board.ID, "hits", board.hits)
-PyDOOMS.comm.addOutgoingUpdate(board.ID, "darts", board.darts)
-PyDOOMS.comm.addOutgoingUpdate(board.ID, "ready", board.ready)
+PyDOOMS._comm.addOutgoingUpdate(board.ID, "hits", board.hits)
+PyDOOMS._comm.addOutgoingUpdate(board.ID, "darts", board.darts)
+PyDOOMS._comm.addOutgoingUpdate(board.ID, "ready", board.ready)
 
 PyDOOMS.barrier()
-
 
 
 # Sum result
@@ -70,4 +77,3 @@ else:
     pass
 
 PyDOOMS.shutdown()
-

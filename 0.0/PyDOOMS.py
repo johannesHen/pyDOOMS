@@ -1,37 +1,59 @@
+"""
+Module providing the PyDOOMS API as well as the superclass for all shared objects when using PyDOOMS
+"""
+
 from ObjectStore import *
 from Communication import *
 
 class SharedObject(object):
     """
-    Class to be subclassed by all objects to be shared with other nodes
+    Superclass for all shared objects.
     """
 
     ID = None
 
     def __init__(self, id):
+        """
+        Initializes an object by adding it to the object store
+        as well as sending it to all other nodes
+        """
         self.ID = id
-        store.addObject(self)
-        comm.spreadObject(self)
+        _store.addObject(self)
+        _comm.spreadObject(self)
 
 
     def update(self, name, value):
+        """
+        Sets an attribute in this object to the new value
+        Called when receiving updates from other nodes
+        """
         self.__dict__[name] = value
 
 
-
 def get(id):
-    obj = store.objects[id][0]
+    """
+    Returns the object with id id from the object store if it can be found
+    """
+    obj = _store.objects[id]
     if (obj is not None):
         return obj
     else:
         raise Exception('Object not found')
 
+
 def barrier():
-    comm.comm_barrier()
+    """
+    Triggers a barrier synchronization among all nodes
+    """
+    _comm.commBarrier()
+
 
 def shutdown():
-    comm.commShutdown()
+    """
+    Gracefully shuts down the communicating MPI thread
+    """
+    _comm.commShutdown()
 
 
-store = ObjectStore()
-comm = Communication(store)
+_store = ObjectStore()
+_comm = Communication(_store)
