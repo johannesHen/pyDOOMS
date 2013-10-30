@@ -34,11 +34,15 @@ def get(id):
     """
     Returns the object with id id from the object store if it can be found
     """
-    obj = _store.objects[id]
-    if (obj is not None):
-        return obj
-    else:
-        raise Exception('Object not found')
+    try:
+        obj = _store.objects[id]
+        if (obj is not None):
+            return obj
+        else:
+            raise Exception('Object not found')
+    except KeyError:
+        time.sleep(0.001)
+        get(id)
 
 
 def barrier():
