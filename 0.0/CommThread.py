@@ -70,14 +70,14 @@ class CommThread(threading.Thread):
 
     def receiveUpdate(self, id, attr, value):
         if (self.barrierUp):
-            self.communication.objStore.objects[id][0].update(attr,value)
+            self.communication.objStore.objects[id].update(attr,value)
         else:
             self.incomingUpdates.append((id, attr, value))
 
 
     def processUpdates(self):
         for upd in self.incomingUpdates:
-            self.communication.objStore.objects[upd[0]][0].update(upd[1], upd[2])
+            self.communication.objStore.objects[upd[0]].update(upd[1], upd[2])
 
     def barrierStart(self):
         #logging.debug("Process "+str(self.comm.rank) + " Starting barrier")

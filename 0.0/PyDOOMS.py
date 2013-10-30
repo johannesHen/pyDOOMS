@@ -34,7 +34,7 @@ def get(id):
     """
     Returns the object with id id from the object store if it can be found
     """
-    obj = _store.objects[id][0]
+    obj = _store.objects[id]
     if (obj is not None):
         return obj
     else:
