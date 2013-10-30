@@ -36,12 +36,11 @@ while (darts > 0):
     darts = darts - 1
 board.ready = True
 
-PyDOOMS.comm.addOutgoingUpdate(board.ID, "hits", board.hits)
-PyDOOMS.comm.addOutgoingUpdate(board.ID, "darts", board.darts)
-PyDOOMS.comm.addOutgoingUpdate(board.ID, "ready", board.ready)
+PyDOOMS._comm.addOutgoingUpdate(board.ID, "hits", board.hits)
+PyDOOMS._comm.addOutgoingUpdate(board.ID, "darts", board.darts)
+PyDOOMS._comm.addOutgoingUpdate(board.ID, "ready", board.ready)
 
 PyDOOMS.barrier()
-
 
 
 # Sum result
@@ -64,4 +63,3 @@ else:
     print "Client",myname," dead. Worked for",time.time() - start, "seconds."
 
 PyDOOMS.shutdown()
-
