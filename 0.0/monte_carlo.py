@@ -1,3 +1,11 @@
+"""
+A basic monte-carlo implementation for calculating pi.
+Assumes the argument supplied to the nodes is the node ID, starting from 0
+
+Node 0 creates the shared objects and sums the result,
+all other nodes fetches the objects and work on one object each
+"""
+
 import PyDOOMS
 from Board import Board
 import random, math, time, sys
