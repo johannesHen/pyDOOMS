@@ -45,7 +45,7 @@ def barrier():
     """
     Triggers a barrier synchronization among all nodes
     """
-    _comm.comm_barrier()
+    _comm.commBarrier()
 
 
 def shutdown():
