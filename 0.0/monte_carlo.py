@@ -1,33 +1,13 @@
-import SharedObject
+import PyDOOMS
+from Board import Board
 import random, math, time, sys
-
-class Board(SharedObject.SharedObject):
-    """
-    Class representing a board
-    """
-    def __init__(self, ID):
-        SharedObject.SharedObject.__init__(self, ID)
-        self.hits = 0
-        self.darts = 0
-        self.ready = False
-
-    def hit(self):
-        self.hits = self.hits + 1
-        self.darts = self.darts + 1
-
-    def miss(self):
-        self.darts = self.darts + 1
-
-    def calc_pi(self):
-        return (4.0 * self.hits) / self.darts
-
 
 
 # SETUP
 start = time.time()
 myname = eval(sys.argv[1])
 
-darts = 4000000
+darts = 20000
 totalClients = 4
 
 darts = darts / totalClients
@@ -39,8 +19,8 @@ if myname == 0:
     Board(3)
 
 
-SharedObject.barrier()
-board = SharedObject.get(myname)
+PyDOOMS.barrier()
+board = PyDOOMS.get(myname)
 
 # Compute
 while (darts > 0):
@@ -56,11 +36,11 @@ while (darts > 0):
     darts = darts - 1
 board.ready = True
 
-SharedObject.manager.comm.addOutgoingUpdate(board.ID, "hits", board.hits)
-SharedObject.manager.comm.addOutgoingUpdate(board.ID, "darts", board.darts)
-SharedObject.manager.comm.addOutgoingUpdate(board.ID, "ready", board.ready)
+PyDOOMS.comm.addOutgoingUpdate(board.ID, "hits", board.hits)
+PyDOOMS.comm.addOutgoingUpdate(board.ID, "darts", board.darts)
+PyDOOMS.comm.addOutgoingUpdate(board.ID, "ready", board.ready)
 
-SharedObject.barrier()
+PyDOOMS.barrier()
 
 
 
@@ -70,7 +50,7 @@ pi = 0.0
 if myname == 0:
     i = 0
     while i < totalClients:
-        b = SharedObject.get(i)
+        b = PyDOOMS.get(i)
         if b.ready:
             pi = pi + b.calc_pi()
             i = i + 1
@@ -83,5 +63,5 @@ if myname == 0:
 else:
     print "Client",myname," dead. Worked for",time.time() - start, "seconds."
 
-SharedObject.shutdown()
+PyDOOMS.shutdown()
 

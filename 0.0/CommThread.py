@@ -44,7 +44,7 @@ class CommThread(threading.Thread):
             self.comm.send(msg, i, tag)
 
     def receiveObject(self, obj):
-        self.communication.manager.addObject(obj)
+        self.communication.objStore.addObject(obj)
 
     def sendUpdates(self):
         #logging.debug("OutgoingUpdates: " + str(self.outgoingUpdates))
@@ -70,14 +70,14 @@ class CommThread(threading.Thread):
 
     def receiveUpdate(self, id, attr, value):
         if (self.barrierUp):
-            self.communication.manager.objects[id][0].update(attr,value)
+            self.communication.objStore.objects[id][0].update(attr,value)
         else:
             self.incomingUpdates.append((id, attr, value))
 
 
     def processUpdates(self):
         for upd in self.incomingUpdates:
-            self.communication.manager.objects[upd[0]][0].update(upd[1], upd[2])
+            self.communication.objStore.objects[upd[0]][0].update(upd[1], upd[2])
 
     def barrierStart(self):
         #logging.debug("Process "+str(self.comm.rank) + " Starting barrier")
@@ -120,7 +120,7 @@ class CommThread(threading.Thread):
                         self.outgoingUpdates.pop(0)
                     self.outgoingUpdates.append(msg)
                 elif (cmd == self.SHUTDOWN):
-                    logging.debug("Shutting down")
+                    #logging.debug("Shutting down")
                     self.running = False
             except Queue.Empty:
                 if (self.comm.Iprobe(MPI.ANY_SOURCE, self.SPREAD_OBJECT)):

@@ -1,4 +1,4 @@
-import SharedObject
+import PyDOOMS
 import random, math, time, sys
 import logging
 
@@ -9,14 +9,14 @@ logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s,%(msecs)d (%(threadName)-2s) %(message)s',datefmt='%M:%S'
                     )
 
-class TestObject(SharedObject.SharedObject):
+class TestObject(PyDOOMS.SharedObject):
     def __init__(self, ID):
-        SharedObject.SharedObject.__init__(self, ID)
+        PyDOOMS.SharedObject.__init__(self, ID)
         self.value = 0
 
 
 def printDict():
-    objects = SharedObject.manager.objects
+    objects = PyDOOMS.manager.objects
     print "--------------- Process:",myname,"--------------------------------------------"
     for element in objects:
         if (isinstance(objects[element][0],TestObject)):
@@ -82,12 +82,12 @@ def ReadLoopTest1():
 
     time.sleep(0.2) # wait for references to spread
 
-    logging.debug("Process " + str(myname) + " Value is " + str(SharedObject.get(1).value))
+    logging.debug("Process " + str(myname) + " Value is " + str(PyDOOMS.get(1).value))
     if (myname == 0):
-        SharedObject.get(1).value += 1
-    logging.debug("Process " + str(myname) + " Value is " + str(SharedObject.get(1).value))
-    SharedObject.barrier()
-    logging.debug("Process " + str(myname) + " Value is " + str(SharedObject.get(1).value))
+        PyDOOMS.get(1).value += 1
+    logging.debug("Process " + str(myname) + " Value is " + str(PyDOOMS.get(1).value))
+    PyDOOMS.barrier()
+    logging.debug("Process " + str(myname) + " Value is " + str(PyDOOMS.get(1).value))
 
 
     printDict()
@@ -106,26 +106,26 @@ def ReadLoopTest2():
     time.sleep(0.1) # wait for references to spread
 
     if (myname is not 0):
-        while (SharedObject.get(myname,Communication.READ_ACCESS).value == 0):
+        while (PyDOOMS.get(myname,Communication.READ_ACCESS).value == 0):
             logging.debug("Process " + str(myname) + " Retrieved object " + str(myname) + ": Value is 0")
             time.sleep(0.5)
         logging.debug("Process " + str(myname) + " Retrieved object " + str(myname) +
-                      ", Value is " + str(SharedObject.get(myname,Communication.READ_ACCESS).value))
+                      ", Value is " + str(PyDOOMS.get(myname,Communication.READ_ACCESS).value))
     elif (myname == 0):
         time.sleep(1)
         obj1.value = obj1.value + 1
         logging.debug("Process " + str(myname) + " Object 1 updated, invalidating")
-        SharedObject.pydooms_sendInvalidate(1) # invalidate all copies of this object
+        PyDOOMS.pydooms_sendInvalidate(1) # invalidate all copies of this object
 
         time.sleep(1)
         obj2.value = obj2.value + 1
         logging.debug("Process " + str(myname) + " Object 2 updated, invalidating")
-        SharedObject.pydooms_sendInvalidate(2) # invalidate all copies of this object
+        PyDOOMS.pydooms_sendInvalidate(2) # invalidate all copies of this object
 
         time.sleep(1)
         obj3.value = obj3.value + 1
         logging.debug("Process " + str(myname) + " Object 3 updated, invalidating")
-        SharedObject.pydooms_sendInvalidate(3) # invalidate all copies of this object
+        PyDOOMS.pydooms_sendInvalidate(3) # invalidate all copies of this object
 
     printDict()
     logging.debug("Process " + str(myname) + " ReadLoopTest2 finished")
@@ -141,38 +141,38 @@ def ReadLoopTest3():
         obj3 = TestObject(3)
         obj4 = TestObject(4)
 
-    SharedObject.barrier()
+    PyDOOMS.barrier()
     time.sleep(0.1) # wait for references to spread
 
     if (myname is not 0):
-        while (SharedObject.get(myname,Communication.READ_ACCESS).value == 0 or
-                       SharedObject.get(myname+1,Communication.READ_ACCESS).value == 0):
+        while (PyDOOMS.get(myname,Communication.READ_ACCESS).value == 0 or
+                       PyDOOMS.get(myname+1,Communication.READ_ACCESS).value == 0):
             logging.debug("Process " + str(myname) + " Retrieved object " + str(myname) +
-                      ", Value is " + str(SharedObject.get(myname,Communication.READ_ACCESS).value) +
-                ", Retrieved object" + str(myname+1) + ", Value is" + str(SharedObject.get(myname+1,Communication.READ_ACCESS).value))
+                      ", Value is " + str(PyDOOMS.get(myname,Communication.READ_ACCESS).value) +
+                ", Retrieved object" + str(myname+1) + ", Value is" + str(PyDOOMS.get(myname+1,Communication.READ_ACCESS).value))
             time.sleep(0.4)
         logging.debug("Process " + str(myname) + " Retrieved object " + str(myname) +
-                      ", Value is " + str(SharedObject.get(myname,Communication.READ_ACCESS).value))
+                      ", Value is " + str(PyDOOMS.get(myname,Communication.READ_ACCESS).value))
     elif (myname == 0):
         time.sleep(1)
         obj1.value = obj1.value + 1
         logging.debug("Process " + str(myname) + " Object 1 updated, invalidating")
-        SharedObject.pydooms_sendInvalidate(1) # invalidate all copies of this object
+        PyDOOMS.pydooms_sendInvalidate(1) # invalidate all copies of this object
 
         time.sleep(1)
         obj2.value = obj2.value + 1
         logging.debug("Process " + str(myname) + " Object 2 updated, invalidating")
-        SharedObject.pydooms_sendInvalidate(2) # invalidate all copies of this object
+        PyDOOMS.pydooms_sendInvalidate(2) # invalidate all copies of this object
 
         time.sleep(1)
         obj3.value = obj3.value + 1
         logging.debug("Process " + str(myname) + " Object 3 updated, invalidating")
-        SharedObject.pydooms_sendInvalidate(3) # invalidate all copies of this object
+        PyDOOMS.pydooms_sendInvalidate(3) # invalidate all copies of this object
 
         time.sleep(1)
         obj4.value = obj4.value + 1
         logging.debug("Process " + str(myname) + " Object 4 updated, invalidating")
-        SharedObject.pydooms_sendInvalidate(4) # invalidate all copies of this object
+        PyDOOMS.pydooms_sendInvalidate(4) # invalidate all copies of this object
 
     printDict()
     logging.debug("Process " + str(myname) + " ReadLoopTest3 finished")
@@ -185,21 +185,21 @@ def WriteLoopTest1():
     if (myname == 0):
         obj = TestObject(1)
 
-    SharedObject.barrier()
+    PyDOOMS.barrier()
     time.sleep(0.1) # wait for references to spread
     logging.debug("Process " + str(myname) + " Starting WriteLoopTest1")
 
-    while (SharedObject.get(1,Communication.READ_ACCESS).value < 6):
-        obj = SharedObject.get(1,Communication.WRITE_ACCESS)
+    while (PyDOOMS.get(1,Communication.READ_ACCESS).value < 6):
+        obj = PyDOOMS.get(1,Communication.WRITE_ACCESS)
         logging.debug("Process "+str(myname) + " retrieved object 1: Value is " + str(obj.value))
         logging.debug("Process "+str(myname) + " incrementing value")
         obj.value += 1
         logging.debug("Process "+str(myname) + " sending invalidate")
-        SharedObject.pydooms_sendInvalidate(1)
+        PyDOOMS.pydooms_sendInvalidate(1)
         time.sleep(0.5) # Wait so all nodes have a chance of getting the write lock
     logging.debug("Process " + str(myname) + " Retrieved object 1" +
-                      ": Value is " + str(SharedObject.get(1,Communication.READ_ACCESS).value))
-    SharedObject.barrier()
+                      ": Value is " + str(PyDOOMS.get(1,Communication.READ_ACCESS).value))
+    PyDOOMS.barrier()
     printDict()
     logging.debug("Process " + str(myname) + " WriteLoopTest1 finished")
 
@@ -213,20 +213,20 @@ def WriteLoopTest2():
         obj2 = TestObject(2)
         obj3 = TestObject(3)
 
-    SharedObject.barrier()
+    PyDOOMS.barrier()
     time.sleep(0.1) # wait for references to spread
 
-    while (SharedObject.get(myname,Communication.READ_ACCESS).value < 4):
-        obj = SharedObject.get(myname,Communication.WRITE_ACCESS)
+    while (PyDOOMS.get(myname,Communication.READ_ACCESS).value < 4):
+        obj = PyDOOMS.get(myname,Communication.WRITE_ACCESS)
         logging.debug("Process " + str(myname) + " Retrieved object " + str(myname) + ": Value is " + str(obj.value))
         logging.debug("Process " + str(myname) + " Incrementing value")
         obj.value += 1
-        SharedObject.pydooms_sendInvalidate(myname)
+        PyDOOMS.pydooms_sendInvalidate(myname)
         time.sleep(0.5)
     logging.debug("Process " + str(myname) + " Retrieved object " + str(myname) +
-                      ", Value is " + str(SharedObject.get(myname,Communication.READ_ACCESS).value))
+                      ", Value is " + str(PyDOOMS.get(myname,Communication.READ_ACCESS).value))
 
-    SharedObject.barrier()
+    PyDOOMS.barrier()
     printDict()
     logging.debug("Process " + str(myname) + " WriteLoopTest2 finished")
 
@@ -241,28 +241,28 @@ def WriteLoopTest3():
         obj3 = TestObject(3)
         obj4 = TestObject(4)
 
-    SharedObject.barrier()
+    PyDOOMS.barrier()
     time.sleep(0.1) # wait for references to spread
 
 
-    while (SharedObject.get(myname,Communication.READ_ACCESS).value <= 30 or
-                   SharedObject.get(myname+1,Communication.READ_ACCESS).value <= 30):
-        obja = SharedObject.get(myname,Communication.WRITE_ACCESS)
-        objb = SharedObject.get(myname+1,Communication.WRITE_ACCESS)
+    while (PyDOOMS.get(myname,Communication.READ_ACCESS).value <= 30 or
+                   PyDOOMS.get(myname+1,Communication.READ_ACCESS).value <= 30):
+        obja = PyDOOMS.get(myname,Communication.WRITE_ACCESS)
+        objb = PyDOOMS.get(myname+1,Communication.WRITE_ACCESS)
         logging.debug("Process " + str(myname) + " Retrieved object " + str(myname) + ": Value is " + str(obja.value) +
                       ", object " + str(myname+1) + ": Value is " + str(objb.value))
         logging.debug("Process " + str(myname) + " Incrementing values")
         obja.value += 1
         objb.value += 1
-        SharedObject.pydooms_sendInvalidate(myname)
-        SharedObject.pydooms_sendInvalidate(myname+1)
+        PyDOOMS.pydooms_sendInvalidate(myname)
+        PyDOOMS.pydooms_sendInvalidate(myname+1)
         time.sleep(0.5)
 
     logging.debug("Process " + str(myname) + " Retrieved object " + str(myname) +
-                  ", Value is " + str(SharedObject.get(myname,Communication.READ_ACCESS).value) + ", Retrieved object" +
-                  str(myname+1) + ", Value is" + str(SharedObject.get(myname+1,Communication.READ_ACCESS).value))
+                  ", Value is " + str(PyDOOMS.get(myname,Communication.READ_ACCESS).value) + ", Retrieved object" +
+                  str(myname+1) + ", Value is" + str(PyDOOMS.get(myname+1,Communication.READ_ACCESS).value))
 
-    SharedObject.barrier()
+    PyDOOMS.barrier()
     printDict()
     logging.debug("Process " + str(myname) + " WriteLoopTest3 finished")
 

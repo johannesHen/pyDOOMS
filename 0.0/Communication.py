@@ -9,8 +9,8 @@ class Communication:
                     format='%(asctime)s,%(msecs)d (%(threadName)-2s) %(message)s',datefmt='%M:%S'
                     )
 
-    def __init__(self, man):
-        self.manager = man
+    def __init__(self, store):
+        self.objStore = store
         self.sendQueue = Queue.Queue()
         self.receiveQueue = Queue.Queue()
         self.commThread = CommThread.CommThread(self, self.sendQueue, self.receiveQueue)
