@@ -6,17 +6,21 @@ import random, math, time, sys
 # SETUP
 start = time.time()
 myname = eval(sys.argv[1])
+numberOfClients = eval(sys.argv[2])
 
-darts = 20000
-totalClients = 4
+darts = 1000000
+totalClients = numberOfClients
 
 darts = darts / totalClients
 
 if myname == 0:
-    Board(0)
-    Board(1)
-    Board(2)
-    Board(3)
+    for boardID in range(totalClients):
+        Board(boardID)
+
+    #Board(0)
+    #Board(1)
+    #Board(2)
+    #Board(3)
 
 
 PyDOOMS.barrier()
@@ -55,13 +59,15 @@ if myname == 0:
             pi = pi + b.calc_pi()
             i = i + 1
         else:
-            print "board ",i,":",b.ready
+            #print "board ",i,":",b.ready
             time.sleep(1)
 
-    print "Pi: " + str(pi / totalClients) + " calculated in",time.time() - start
+    print time.time() - start
+    #print "Pi: " + str(pi / totalClients) + " calculated in",time.time() - start
 
 else:
-    print "Client",myname," dead. Worked for",time.time() - start, "seconds."
+    #print "Client",myname," dead. Worked for",time.time() - start, "seconds."
+    pass
 
 PyDOOMS.shutdown()
 

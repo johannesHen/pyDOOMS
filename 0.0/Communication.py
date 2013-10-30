@@ -5,9 +5,9 @@ import CommThread
 
 class Communication:
 
-    logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s,%(msecs)d (%(threadName)-2s) %(message)s',datefmt='%M:%S'
-                    )
+    #logging.basicConfig(level=logging.DEBUG,
+    #                format='%(asctime)s,%(msecs)d (%(threadName)-2s) %(message)s',datefmt='%M:%S'
+    #               )
 
     def __init__(self, store):
         self.objStore = store
@@ -30,7 +30,7 @@ class Communication:
                 if (self.receiveQueue.get(False) == self.commThread.BARRIER_DONE):
                     return
             except Queue.Empty:
-                time.sleep(0.001)
+                time.sleep(0.00007)
 
     def commShutdown(self):
         #logging.debug("Sending SHUTDOWN command to thread")
