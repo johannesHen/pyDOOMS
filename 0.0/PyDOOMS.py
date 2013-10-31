@@ -36,7 +36,7 @@ def get(id):
     """
     try:
         obj = _store.objects[id]
-        if (obj is not None):
+        if (isinstance(obj, SharedObject)):
             return obj
         else:
             raise Exception('Object not found')

@@ -15,9 +15,9 @@ commandStrNumberOfLoops=$(echo $2 - 1 | bc)
 
 if [ $2 -lt 2 ]
 then
-commandStr="mpiexec -np 1 python 0.0/monte_carlo.py 0 1"
+	commandStr="mpiexec -np 1 python 0.0/monte_carlo.py 0 1"
 else	
-commandStr="mpiexec -np 1 python 0.0/monte_carlo.py 0 $2"
+	commandStr="mpiexec -np 1 python 0.0/monte_carlo.py 0 $2"
 fi
 
 if [ $2 -gt 1 ]

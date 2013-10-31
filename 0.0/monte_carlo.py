@@ -16,7 +16,7 @@ start = time.time()
 myname = eval(sys.argv[1])
 numberOfClients = eval(sys.argv[2])
 
-darts = 1000000
+darts = 4
 totalClients = numberOfClients
 
 darts = darts / totalClients
