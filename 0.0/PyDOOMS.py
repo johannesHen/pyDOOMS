@@ -41,8 +41,9 @@ def get(id):
         else:
             raise Exception('Object not found')
     except KeyError:
-        time.sleep(0.001)
-        get(id)
+        time.sleep(0.0001)
+        logging.debug("No matching object found, trying again...")
+        return get(id)
 
 
 def barrier():
