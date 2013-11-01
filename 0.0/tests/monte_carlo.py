@@ -6,9 +6,14 @@ Node 0 creates the shared objects and sums the result,
 all other nodes fetches the objects and work on one object each
 """
 
+import random
+import math
+import time
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import PyDOOMS
 from Board import Board
-import random, math, time, sys
+
 
 
 # SETUP
@@ -16,7 +21,7 @@ start = time.time()
 myname = eval(sys.argv[1])
 numberOfClients = eval(sys.argv[2])
 
-darts = 4
+darts = 2000000
 totalClients = numberOfClients
 
 darts = darts / totalClients
@@ -24,11 +29,6 @@ darts = darts / totalClients
 if myname == 0:
     for boardID in range(totalClients):
         Board(boardID)
-
-    #Board(0)
-    #Board(1)
-    #Board(2)
-    #Board(3)
 
 
 PyDOOMS.barrier()
