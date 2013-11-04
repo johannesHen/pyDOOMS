@@ -25,12 +25,12 @@ class CommThread(threading.Thread):
     rank = MPI.COMM_WORLD.Get_rank()
 
     outgoingUpdatesBufferSize = 10
-    outgoingUpdates = []
-    incomingUpdates = []
 
 
     def __init__(self, comm, sQueue, rQueue):
         threading.Thread.__init__(self)
+        self.outgoingUpdates = []
+        self.incomingUpdates = []
         self.communication = comm
         self.sendQueue = sQueue
         self.receiveQueue = rQueue
@@ -159,42 +159,46 @@ class CommThread(threading.Thread):
         when the sendQueue is empty, and when no message are sent or received the thread sleeps
         """
 
-        #logging.debug("Process " + str(self.communication.comm.rank) + " - New CommThread starting")
+        #logging.debug("Process " + str(self.rank) + " - New CommThread starting")
         while (self.running):
             try:
-                (cmd, msg) = self.sendQueue.get(False)
+                try:
+                    (cmd, msg) = self.sendQueue.get(False)
 
-                if (cmd == self.SPREAD_OBJECT):
-                    #logging.debug("Process "+str(self.comm.rank) + " Spreading " + str(msg))
-                    self.broadcast(msg, self.SPREAD_OBJECT)
+                    if (cmd == self.SPREAD_OBJECT):
+                        #logging.debug("Process "+str(self.comm.rank) + " Spreading " + str(msg))
+                        self.broadcast(msg, self.SPREAD_OBJECT)
 
-                elif (cmd == self.BARRIER_START):
-                    #logging.debug("Process "+str(self.comm.rank) + " Starting barrier")
-                    self.barrierStart()
+                    elif (cmd == self.BARRIER_START):
+                        #logging.debug("Process "+str(self.comm.rank) + " Starting barrier")
+                        self.barrierStart()
 
-                elif (cmd == self.OUTGOING_UPDATE):
-                    #logging.debug("Adding outgoing update:" + str(msg))
-                    if (len(self.outgoingUpdates) >= self.outgoingUpdatesBufferSize):
-                        self.sendUpdate(self.outgoingUpdates[0])
-                        self.outgoingUpdates.pop(0)
-                    self.outgoingUpdates.append(msg)
+                    elif (cmd == self.OUTGOING_UPDATE):
+                        #logging.debug("Adding outgoing update:" + str(msg))
+                        if (len(self.outgoingUpdates) >= self.outgoingUpdatesBufferSize):
+                            self.sendUpdate(self.outgoingUpdates[0])
+                            self.outgoingUpdates.pop(0)
+                        self.outgoingUpdates.append(msg)
 
-                elif (cmd == self.SHUTDOWN):
-                    #logging.debug("Shutting down")
-                    self.running = False
+                    elif (cmd == self.SHUTDOWN):
+                        #logging.debug("Shutting down")
+                        self.running = False
 
-            except Queue.Empty:
+                except Queue.Empty:
 
-                if (self.comm.Iprobe(MPI.ANY_SOURCE, self.SPREAD_OBJECT)):
-                    msg = self.comm.recv(source=MPI.ANY_SOURCE, tag=self.SPREAD_OBJECT)
-                    self.receiveObject(msg)
+                    if (self.comm.Iprobe(MPI.ANY_SOURCE, self.SPREAD_OBJECT)):
+                        msg = self.comm.recv(source=MPI.ANY_SOURCE, tag=self.SPREAD_OBJECT)
+                        self.receiveObject(msg)
 
-                elif (self.comm.Iprobe(MPI.ANY_SOURCE, self.SEND_UPDATE)):
-                    msg = self.comm.recv(source=MPI.ANY_SOURCE, tag=self.SEND_UPDATE)
-                    self.receiveUpdate(*msg)
+                    elif (self.comm.Iprobe(MPI.ANY_SOURCE, self.SEND_UPDATE)):
+                        msg = self.comm.recv(source=MPI.ANY_SOURCE, tag=self.SEND_UPDATE)
+                        self.receiveUpdate(*msg)
 
-                elif (self.comm.Iprobe(MPI.ANY_SOURCE, self.BARRIER_SENDS_DONE)):
-                    self.comm.recv(source=MPI.ANY_SOURCE, tag=self.BARRIER_SENDS_DONE)
-                    self.barrierAck()
+                    elif (self.comm.Iprobe(MPI.ANY_SOURCE, self.BARRIER_SENDS_DONE)):
+                        self.comm.recv(source=MPI.ANY_SOURCE, tag=self.BARRIER_SENDS_DONE)
+                        self.barrierAck()
 
-                time.sleep(0.0000001)
+                    time.sleep(0.0000001)
+            except Exception as e:
+                logging.exception(e)
+                logging.critical("CommThread exception")

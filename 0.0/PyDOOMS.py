@@ -60,5 +60,13 @@ def shutdown():
     _comm.commShutdown()
 
 
+def _reset():
+    """
+    Reset the object store and communication thread states.
+    Only used for testing
+    """
+    _comm.reset()
+
+
 _store = ObjectStore()
 _comm = Communication(_store)

@@ -60,3 +60,18 @@ class Communication:
         This will cause the communication thread to gracefully shut down.
         """
         self.sendQueue._put((self.commThread.SHUTDOWN, None))
+
+    def reset(self):
+        """
+        Restarts the commThread and clear the object store
+        """
+        self.sendQueue._put((self.commThread.SHUTDOWN, None))
+
+        # Wait until thread is dead
+        while (self.commThread.isAlive()):
+            time.sleep(0.001)
+
+        self.objStore.objects.clear()
+
+        self.commThread = CommThread.CommThread(self, self.sendQueue, self.receiveQueue)
+        self.commThread.start()

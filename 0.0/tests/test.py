@@ -30,10 +30,11 @@ def printDict():
 
 def reset():
     '''
-    Reset the testing environment
+    Reset the testing environment.
+    Barrier is needed to stop messages received from nodes already in the next test being removed
     '''
-    PyDOOMS._store.objects.clear()
-    PyDOOMS.barrier() # clear incoming and outgoing updates
+    PyDOOMS._reset()
+    PyDOOMS.barrier()
 
 
 
@@ -347,7 +348,7 @@ def WriteLoopTest3():
 
 
 try:
-    """SpreadTest1()
+    SpreadTest1()
     reset()
 
     SpreadTest2()
@@ -357,21 +358,21 @@ try:
     reset()
 
     ReadLoopTest1()
-    reset()"""
+    reset()
 
     ReadLoopTest2()
     reset()
 
-    #ReadLoopTest3()
-    #reset()
+    ReadLoopTest3()
+    reset()
 
-    ##WriteLoopTest1()
-    ##reset()
+    WriteLoopTest1()
+    reset()
 
-    #WriteLoopTest2()
-    #reset()
+    WriteLoopTest2()
+    reset()
 
-    ##WriteLoopTest3()
+    WriteLoopTest3()
 
     #MergeUpdateTest1()
     #ShutdownTest1()
