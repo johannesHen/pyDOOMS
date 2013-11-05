@@ -2,12 +2,28 @@
 MONTY=""
 TEST=""
 totaltime=0
+verbose=false
+file="monty_carlo.py"
 
-#test2="2"
-#test1=test1 | bc
-#let "test2 += test2"
-#echo $test2
+while getopts "vf:" opt; do
+  case $opt in
+    v)
+	  verbose=true
+    f)
+	  file=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
 
+shift $(($OPTIND - 1))
 echo "Looping monte_carlo.py $1 times with $2 processes"
 
 
@@ -15,16 +31,16 @@ commandStrNumberOfLoops=$(echo $2 - 1 | bc)
 
 if [ $2 -lt 2 ]
 then
-	commandStr="mpiexec -np 1 python 0.0/tests/monte_carlo.py 0 1"
+	commandStr="mpiexec -np 1 python 0.0/tests/$file 0 1"
 else	
-	commandStr="mpiexec -np 1 python 0.0/tests/monte_carlo.py 0 $2"
+	commandStr="mpiexec -np 1 python 0.0/tests/$file 0 $2"
 fi
 
 if [ $2 -gt 1 ]
 then
 	for x in `seq 1 $commandStrNumberOfLoops`; 
 	do
-	tempCommandStr=": -np 1 python 0.0/tests/monte_carlo.py $x $2"
+	tempCommandStr=": -np 1 python 0.0/tests/$file $x $2"
 	commandStr="$commandStr $tempCommandStr"
 	done
 	
