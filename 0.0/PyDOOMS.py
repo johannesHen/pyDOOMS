@@ -5,6 +5,10 @@ Module providing the PyDOOMS API as well as the superclass for all shared object
 from ObjectStore import *
 from Communication import *
 
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s,%(msecs)d (%(threadName)-2s) %(message)s',datefmt='%M:%S'
+                   )
+
 class SharedObject(object):
     """
     Superclass for all shared objects.
@@ -36,7 +40,7 @@ def get(id):
     """
     try:
         obj = _store.objects[id]
-        if (isinstance(obj, SharedObject)):
+        if (obj is not None):
             return obj
         else:
             raise Exception('Object not found')

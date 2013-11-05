@@ -1,25 +1,21 @@
-'''
+"""
 Module containing basic tests for different aspects of the PyDOOMS library
 At the moment most test assumes that there are 4 nodes running
-'''
+"""
 
-import sys, os
+import sys, os, time
 import logging
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import PyDOOMS
 from TestObject import TestObject
 
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s,%(msecs)d (%(threadName)-2s) %(message)s',datefmt='%M:%S'
-                    )
-
 myname = eval(sys.argv[1])
 
 def printDict():
-    '''
+    """
     Prints the contents of the object store in a node.
-    '''
+    """
     objects = PyDOOMS._store.objects
     print "-------------------------------------Process: ",myname," --------------------------------------------"
     for element in objects:
@@ -29,20 +25,20 @@ def printDict():
 
 
 def reset():
-    '''
+    """
     Reset the testing environment.
     Barrier is needed to stop messages received from nodes already in the next test being removed
-    '''
+    """
     PyDOOMS._reset()
     PyDOOMS.barrier()
 
 
 
 def SpreadTest1():
-    '''
+    """
     Tests creation and spreading of objects residing in node 0
     All nodes should have all objects in their local object store
-    '''
+    """
     numOfObj = 500
 
     if (myname == 0):
@@ -60,10 +56,10 @@ def SpreadTest1():
 
 
 def SpreadTest2():
-    '''
+    """
     Tests creation and spreading of objects residing in several different processes
     All nodes should have all objects in their local object store
-    '''
+    """
 
     if (myname == 0):
         for i in range(0,100):
@@ -89,9 +85,9 @@ def SpreadTest2():
 
 
 def GetTest1():
-    '''
+    """
     Tests retrieving object references from local object store and accessing objects
-    '''
+    """
     numOfObj = 100
 
     if (myname == 0):
@@ -108,9 +104,9 @@ def GetTest1():
 
 
 def ReadLoopTest1():
-    '''
+    """
     Tests reading from a shared object before and after object value has been changed by another node
-    '''
+    """
 
     if (myname == 0):
         TestObject(1)
@@ -136,10 +132,10 @@ def ReadLoopTest1():
 
 
 def ReadLoopTest2():
-    '''
+    """
     Tests reading from multiple shard objects by doing a busy-wait for attribute change
     Changes are synchronized over several barriers
-    '''
+    """
 
     if (myname == 0):
         TestObject(1)
@@ -185,10 +181,10 @@ def ReadLoopTest2():
 
 
 def ReadLoopTest3():
-    '''
+    """
     Tests reading from multiple shard objects by doing a busy-wait for attribute change
     Changes are synchronized in one barrier
-    '''
+    """
 
     if (myname == 0):
         TestObject(1)
@@ -230,9 +226,9 @@ def ReadLoopTest3():
 
 
 def WriteLoopTest1():
-    '''
-    Test all nodes writing to a single shared object
-    '''
+    """
+    Test all nodes writing and reading to/from a single shared object
+    """
 
     if (myname == 0):
         TestObject(1)
@@ -258,9 +254,10 @@ def WriteLoopTest1():
 
 
 def WriteLoopTest2():
-    '''
+    """
     Tests all nodes writing to different shared objects (one object is written by only one node)
-    '''
+    and all nodes reading from all shared objects
+    """
 
     threshold = 10
 
@@ -301,9 +298,9 @@ def WriteLoopTest2():
 
 
 def WriteLoopTest3():
-    '''
-    Test writing to multiple shared object from each node
-    '''
+    """
+    Test writing and reading to/from multiple shared object from each node
+    """
 
     if (myname == 0):
         TestObject(0)
@@ -347,7 +344,61 @@ def WriteLoopTest3():
 
 
 
+def ShutdownTest():
+    """
+    Test shutdown commands
+    """
+    # Send several shutdown messages to commThread
+    PyDOOMS.shutdown()
+    PyDOOMS.shutdown()
+    PyDOOMS.shutdown()
+
+    # Restart commThread
+    PyDOOMS._reset()
+
+    # commThread should be alive
+    if (PyDOOMS._comm.commThread.isAlive()):
+        logging.debug("Process " + str(myname) + " ShutdownTest finished successfully")
+    else:
+        logging.critical("isAlive(): " + str(PyDOOMS._comm.commThread.isAlive()))
+        raise Exception
+
+
+
+def BarrierTest():
+    loops = 5
+    increment = 2
+    results = []
+
+    if (myname == 0):
+        TestObject(0)
+
+    PyDOOMS.barrier()
+    obj = PyDOOMS.get(0)
+
+    for i in range(loops):
+        results.append(obj.value)
+        obj.value += increment
+
+        PyDOOMS._comm.addOutgoingUpdate(obj.ID,"value",obj.value)
+        PyDOOMS.barrier()
+
+    results.append(obj.value)
+
+    if (results[0] == 0*increment and results[1] == 1*increment and results[2] == 2*increment and
+                results[3] == 3*increment and results[4] == 4*increment):
+        logging.debug("Process " + str(myname) + " BarrierTest finished successfully")
+    else:
+        logging.critical("results: " + str(results))
+        raise Exception
+    
+    
+
 try:
+    BarrierTest()
+
+    ShutdownTest()
+
     SpreadTest1()
     reset()
 
@@ -373,10 +424,6 @@ try:
     reset()
 
     WriteLoopTest3()
-
-    #MergeUpdateTest1()
-    #ShutdownTest1()
-    #Barriertest
 
     if (myname == 0):
         logging.info("All tests passed")

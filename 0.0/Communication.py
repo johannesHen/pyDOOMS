@@ -9,10 +9,6 @@ class Communication:
     and to forward outgoing message from the main thread to the communication thread using Queues
     """
 
-    #logging.basicConfig(level=logging.DEBUG,
-    #                format='%(asctime)s,%(msecs)d (%(threadName)-2s) %(message)s',datefmt='%M:%S'
-    #               )
-
     def __init__(self, store):
         """
         Initiates queues for thread communication
@@ -73,5 +69,6 @@ class Communication:
 
         self.objStore.objects.clear()
 
+        self.sendQueue = Queue.Queue()
         self.commThread = CommThread.CommThread(self, self.sendQueue, self.receiveQueue)
         self.commThread.start()
