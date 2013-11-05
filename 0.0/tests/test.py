@@ -366,6 +366,9 @@ def ShutdownTest():
 
 
 def BarrierTest():
+    """
+    Test barrier by incrementing a single value over multiple barriers
+    """
     loops = 5
     increment = 2
     results = []
