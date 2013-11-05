@@ -55,13 +55,15 @@ class Communication:
         Sends a shutdown message to the communication thread.
         This will cause the communication thread to gracefully shut down.
         """
-        self.sendQueue._put((self.commThread.SHUTDOWN, None))
+        if (self.commThread.SHUTDOWN, None) not in self.sendQueue.queue:
+            self.sendQueue._put((self.commThread.SHUTDOWN, None))
 
     def reset(self):
         """
         Restarts the commThread and clear the object store
         """
-        self.sendQueue._put((self.commThread.SHUTDOWN, None))
+        #self.sendQueue._put((self.commThread.SHUTDOWN, None))
+        self.commShutdown()
 
         # Wait until thread is dead
         while (self.commThread.isAlive()):

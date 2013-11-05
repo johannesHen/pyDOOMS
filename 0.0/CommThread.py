@@ -104,6 +104,8 @@ class CommThread(threading.Thread):
             self.communication.objStore.objects[id].update(attr,value)
         else:
             self.incomingUpdates.append((id, attr, value))
+            if (id,attr,value) in self.outgoingUpdates:
+                logging.debug("Process: " + str(self.rank) + " incoming and outgoing update for same message in cmd=OUTGOINGUPDATE")
 
 
     def processUpdates(self):
@@ -179,6 +181,8 @@ class CommThread(threading.Thread):
                             self.sendUpdate(self.outgoingUpdates[0])
                             self.outgoingUpdates.pop(0)
                         self.outgoingUpdates.append(msg)
+                        if msg in self.incomingUpdates:
+                            logging.debug("Process: " + str(self.rank) + " incoming and outgoing update for same message in cmd=OUTGOINGUPDATE")
 
                     elif (cmd == self.SHUTDOWN):
                         #logging.debug("Shutting down")
