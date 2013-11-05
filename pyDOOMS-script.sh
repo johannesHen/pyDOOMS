@@ -3,7 +3,7 @@ MONTY=""
 TEST=""
 totaltime=0
 verbose=false
-file="monty_carlo.py"
+file="monte_carlo.py"
 
 while getopts "vf:" opt; do
   case $opt in
