@@ -9,6 +9,7 @@ while getopts "vf:" opt; do
   case $opt in
     v)
 	  verbose=true
+      ;;
     f)
 	  file=$OPTARG
       ;;
