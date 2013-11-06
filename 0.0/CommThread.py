@@ -139,17 +139,20 @@ class CommThread(threading.Thread):
         """
         if (self.barrierAcks == self.size - 1):
             self.barrierUp = False
+            self.comm.barrier()
             self.receiveQueue._put(self.BARRIER_DONE)
 
 
     def barrierAck(self):
         """
-        Increment the number of barrierAcks and if all remote nodes has sent a barrier done message,
-        the barrier is exited, by sending a BARRIER_DONE message to the main thread
+        Increment the number of barrierAcks and if all remote nodes has sent a BARRIER_DONE message,
+        mpi4py's barrier function is called and later a BARRIER_DONE message is sent to the main thread,
+        to indicate that the barrier synchronization is done
         """
         self.barrierAcks += 1
         if (self.barrierAcks == self.size - 1):
             self.barrierUp = False
+            self.comm.barrier()
             self.receiveQueue._put(self.BARRIER_DONE)
 
 
@@ -202,7 +205,9 @@ class CommThread(threading.Thread):
                         self.comm.recv(source=MPI.ANY_SOURCE, tag=self.BARRIER_SENDS_DONE)
                         self.barrierAck()
 
-                    time.sleep(0.0000001)
+                    else:
+                        time.sleep(0.0000001)
+
             except Exception as e:
                 logging.exception(e)
                 logging.critical("CommThread exception")
