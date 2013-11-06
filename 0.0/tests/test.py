@@ -63,10 +63,11 @@ def SpreadTest2():
     Tests creation and spreading of objects residing in several different processes
     All nodes should have all objects in their local object store
     """
+    objectsPerNode = 100
 
     for i in range(nodes):
         if (myname == i):
-            for i in range(i*100,i*100+100):
+            for i in range(i*objectsPerNode,i*objectsPerNode+objectsPerNode):
                 TestObject(i)
 
     PyDOOMS.barrier()
@@ -75,7 +76,7 @@ def SpreadTest2():
     # we must first wait for all inserts to complete
     time.sleep(0.0001)
 
-    if (len(PyDOOMS._store.objects) != 400):
+    if (len(PyDOOMS._store.objects) != objectsPerNode*nodes):
         logging.critical("Process " + str(myname) + " Number of objects:" + str(len(PyDOOMS._store.objects)))
         printDict()
         raise Exception
@@ -236,7 +237,7 @@ def WriteLoopTest1():
             PyDOOMS._comm.addOutgoingUpdate(1,"value",obj.value)
         PyDOOMS.barrier()
 
-    if not (oldObjValue == 0 and obj.value == 4):
+    if not (oldObjValue == 0 and obj.value == nodes):
         logging.critical("Process " + str(myname) + " Values are:"
                          + str(oldObjValue) + "," + str(obj.value) + " ")
         raise Exception
@@ -307,7 +308,7 @@ def WriteLoopTest3():
     oldObj2Value = obj2.value
     oldObj3Value = obj3.value
 
-    for i in range(4):
+    for i in range(nodes):
         if (myname == i):
             obj0.value += 1
             obj1.value += 1
@@ -320,7 +321,7 @@ def WriteLoopTest3():
         PyDOOMS.barrier()
 
     if not (oldObj0Value == 0 and oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and
-                obj0.value == 4 and obj1.value == 4 and obj2.value == 4 and obj3.value == 4):
+                obj0.value == nodes and obj1.value == nodes and obj2.value == nodes and obj3.value == nodes):
         logging.critical("Process " + str(myname) + " Values are:"
                          + str(oldObj0Value) + "," + str(obj0.value) + " "
                          + str(oldObj1Value) + "," + str(obj1.value) + " "
@@ -407,18 +408,20 @@ try:
         ReadLoopTest3()
         reset()
 
-        """WriteLoopTest1()
+        WriteLoopTest1()
         reset()
 
         WriteLoopTest2()
         reset()
 
         WriteLoopTest3()
-        reset()"""
+        reset()
 
         if (myname == 0):
             logging.debug("Test loop " + str(i+1) + " finished successfully")
 
+    if (myname == 0):
+        logging.info("All tests passed")
 
 except Exception as e:
     logging.exception(e)
@@ -426,8 +429,5 @@ except Exception as e:
 
 finally:
     ShutdownTest()
-
-    if (myname == 0):
-        logging.info("All tests passed")
 
     PyDOOMS.shutdown()
