@@ -114,6 +114,7 @@ class CommThread(threading.Thread):
         """
         for upd in self.incomingUpdates:
             self.communication.objStore.objects[upd[0]].update(upd[1], upd[2])
+        self.incomingUpdates = []
 
 
     def barrierStart(self):
@@ -179,7 +180,7 @@ class CommThread(threading.Thread):
                         self.barrierStart()
 
                     elif (cmd == self.OUTGOING_UPDATE):
-                        #logging.debug("Adding outgoing update:" + str(msg))
+                        #logging.debug("Process: " + str(self.rank) + " Adding outgoing update:" + str(msg))
                         if (len(self.outgoingUpdates) >= self.outgoingUpdatesBufferSize):
                             self.sendUpdate(self.outgoingUpdates[0])
                             self.outgoingUpdates.pop(0)
