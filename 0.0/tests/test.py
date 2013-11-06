@@ -46,11 +46,14 @@ def SpreadTest1():
             TestObject(i)
 
     PyDOOMS.barrier()
+    # The python dictionary appears to do non-blocking non-immediate inserts into the object store dict.
+    # Our PyDOOMS.get() function will wait for inserts to be made, but when checking the length of the dict
+    # (which should never be done outside perhaps testing) we must first wait for all inserts to complete
+    time.sleep(0.0001)
 
-    if (len(PyDOOMS._store.objects) == numOfObj):
-        logging.debug("Process " + str(myname) + " SpreadTest 1 finished successfully")
-    else:
-        logging.critical("Number of objects:" + str(len(PyDOOMS._store.objects)))
+    if (len(PyDOOMS._store.objects) != numOfObj):
+        logging.critical("Process " + str(myname) + " Number of objects:" + str(len(PyDOOMS._store.objects)))
+        printDict()
         raise Exception
 
 
@@ -61,25 +64,20 @@ def SpreadTest2():
     All nodes should have all objects in their local object store
     """
 
-    if (myname == 0):
-        for i in range(0,100):
-            TestObject(i)
-    elif (myname == 1):
-        for i in range(100,200):
-            TestObject(i)
-    elif (myname == 2):
-        for i in range(200,300):
-            TestObject(i)
-    elif (myname == 3):
-        for i in range(300,400):
-            TestObject(i)
+    for i in range(nodes):
+        if (myname == i):
+            for i in range(i*100,i*100+100):
+                TestObject(i)
 
     PyDOOMS.barrier()
+    # The python dictionary appears to do non-blocking non-immediate inserts into the object store dict.
+    # Our PyDOOMS.get() function will wait for inserts to be made, but when checking the length of the dict
+    # we must first wait for all inserts to complete
+    time.sleep(0.0001)
 
-    if (len(PyDOOMS._store.objects) == 400):
-        logging.debug("Process " + str(myname) + " SpreadTest 2 finished successfully")
-    else:
-        logging.critical("Number of objects:" + str(len(PyDOOMS._store.objects)))
+    if (len(PyDOOMS._store.objects) != 400):
+        logging.critical("Process " + str(myname) + " Number of objects:" + str(len(PyDOOMS._store.objects)))
+        printDict()
         raise Exception
 
 
@@ -99,7 +97,7 @@ def GetTest1():
     for i in range(numOfObj):
         PyDOOMS.get(i).value
 
-    logging.debug("Process " + str(myname) + " GetTest 1 finished successfully")
+    #logging.debug("Process " + str(myname) + " GetTest 1 finished successfully")
 
 
 
@@ -122,9 +120,7 @@ def ReadLoopTest1():
 
     PyDOOMS.barrier()
 
-    if (oldValue == 0 and obj.value == 1):
-        logging.debug("Process " + str(myname) + " ReadLoopTest 1 finished successfully")
-    else:
+    if not (oldValue == 0 and obj.value == 1):
         logging.critical("Process " + str(myname) + " Values are:"
                          + str(oldValue) + "," + str(obj.value) + " ")
         raise Exception
@@ -169,9 +165,7 @@ def ReadLoopTest2():
         PyDOOMS._comm.addOutgoingUpdate(3,"value",1)
         PyDOOMS.barrier()
 
-    if (oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and obj1.value == 1 and obj2.value == 1 and obj3.value == 1):
-        logging.debug("Process " + str(myname) + " ReadLoopTest 2 finished successfully")
-    else:
+    if not (oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and obj1.value == 1 and obj2.value == 1 and obj3.value == 1):
         logging.critical("Process " + str(myname) + " Values are:"
                          + str(oldObj1Value) + "," + str(obj1.value) + " "
                          + str(oldObj2Value) + "," + str(obj2.value) + " "
@@ -214,9 +208,7 @@ def ReadLoopTest3():
         PyDOOMS._comm.addOutgoingUpdate(3,"value",1)
         PyDOOMS.barrier()
 
-    if (oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and obj1.value == 1 and obj2.value == 1 and obj3.value == 1):
-        logging.debug("Process " + str(myname) + " ReadLoopTest 3 finished successfully")
-    else:
+    if not (oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and obj1.value == 1 and obj2.value == 1 and obj3.value == 1):
         logging.critical("Process " + str(myname) + " Values are:"
                          + str(oldObj1Value) + "," + str(obj1.value) + " "
                          + str(oldObj2Value) + "," + str(obj2.value) + " "
@@ -227,7 +219,7 @@ def ReadLoopTest3():
 
 def WriteLoopTest1():
     """
-    Test all nodes writing and reading to/from a single shared object
+    Test all nodes writing and reading to/from a single shared object, one at a time
     """
 
     if (myname == 0):
@@ -238,15 +230,13 @@ def WriteLoopTest1():
     obj = PyDOOMS.get(1)
     oldObjValue = obj.value
 
-    for i in range(4):
+    for i in range(nodes):
         if (myname == i):
             obj.value += 1
             PyDOOMS._comm.addOutgoingUpdate(1,"value",obj.value)
         PyDOOMS.barrier()
 
-    if (oldObjValue == 0 and obj.value == 4):
-        logging.debug("Process " + str(myname) + " WriteLoopTest 1 finished successfully")
-    else:
+    if not (oldObjValue == 0 and obj.value == 4):
         logging.critical("Process " + str(myname) + " Values are:"
                          + str(oldObjValue) + "," + str(obj.value) + " ")
         raise Exception
@@ -284,10 +274,8 @@ def WriteLoopTest2():
         PyDOOMS._comm.addOutgoingUpdate(myname,"value",obj.value)
         PyDOOMS.barrier()
 
-    if (oldObj0Value == 0 and oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and
+    if not (oldObj0Value == 0 and oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and
                 obj0.value == threshold and obj1.value == threshold and obj2.value == threshold and obj3.value == threshold):
-        logging.debug("Process " + str(myname) + " WriteLoopTest 2 finished successfully")
-    else:
         logging.critical("Process " + str(myname) + " Values are:"
                          + str(oldObj0Value) + "," + str(obj0.value) + " "
                          + str(oldObj1Value) + "," + str(obj1.value) + " "
@@ -331,10 +319,8 @@ def WriteLoopTest3():
             PyDOOMS._comm.addOutgoingUpdate(obj3.ID,"value",obj3.value)
         PyDOOMS.barrier()
 
-    if (oldObj0Value == 0 and oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and
+    if not (oldObj0Value == 0 and oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and
                 obj0.value == 4 and obj1.value == 4 and obj2.value == 4 and obj3.value == 4):
-        logging.debug("Process " + str(myname) + " WriteLoopTest 3 finished successfully")
-    else:
         logging.critical("Process " + str(myname) + " Values are:"
                          + str(oldObj0Value) + "," + str(obj0.value) + " "
                          + str(oldObj1Value) + "," + str(obj1.value) + " "
@@ -357,9 +343,7 @@ def ShutdownTest():
     PyDOOMS._reset()
 
     # commThread should be alive
-    if (PyDOOMS._comm.commThread.isAlive()):
-        logging.debug("Process " + str(myname) + " ShutdownTest finished successfully")
-    else:
+    if not (PyDOOMS._comm.commThread.isAlive()):
         logging.critical("isAlive(): " + str(PyDOOMS._comm.commThread.isAlive()))
         raise Exception
 
@@ -369,15 +353,16 @@ def BarrierTest():
     """
     Test barrier by incrementing a single value over multiple barriers
     """
-    loops = 5
-    increment = 2
+    loops = 10
+    increment = 1
     results = []
 
     if (myname == 0):
-        TestObject(0)
+        for i in range(nodes):
+            TestObject(i)
 
     PyDOOMS.barrier()
-    obj = PyDOOMS.get(0)
+    obj = PyDOOMS.get(myname)
 
     for i in range(loops):
         results.append(obj.value)
@@ -388,52 +373,61 @@ def BarrierTest():
 
     results.append(obj.value)
 
-    if (results[0] == 0*increment and results[1] == 1*increment and results[2] == 2*increment and
+    if not (results[0] == 0*increment and results[1] == 1*increment and results[2] == 2*increment and
                 results[3] == 3*increment and results[4] == 4*increment):
-        logging.debug("Process " + str(myname) + " BarrierTest finished successfully")
-    else:
         logging.critical("results: " + str(results))
         raise Exception
-    
-    
+
+
+
+# ARGUMENTS
+nodes = 4
+testLoops = 10000
 
 try:
-    BarrierTest()
+    for i in range(testLoops):
+        BarrierTest()
+        reset()
 
-    ShutdownTest()
+        SpreadTest1()
+        reset()
 
-    SpreadTest1()
-    reset()
+        SpreadTest2()
+        reset()
 
-    SpreadTest2()
-    reset()
+        GetTest1()
+        reset()
 
-    GetTest1()
-    reset()
+        ReadLoopTest1()
+        reset()
 
-    ReadLoopTest1()
-    reset()
+        ReadLoopTest2()
+        reset()
 
-    ReadLoopTest2()
-    reset()
+        ReadLoopTest3()
+        reset()
 
-    ReadLoopTest3()
-    reset()
+        """WriteLoopTest1()
+        reset()
 
-    WriteLoopTest1()
-    reset()
+        WriteLoopTest2()
+        reset()
 
-    WriteLoopTest2()
-    reset()
+        WriteLoopTest3()
+        reset()"""
 
-    WriteLoopTest3()
+        if (myname == 0):
+            logging.debug("Test loop " + str(i+1) + " finished successfully")
 
-    if (myname == 0):
-        logging.info("All tests passed")
 
 except Exception as e:
     logging.exception(e)
     logging.critical("Tests failed")
 
 finally:
+    ShutdownTest()
+
+    if (myname == 0):
+        logging.info("All tests passed")
+
     PyDOOMS.shutdown()
