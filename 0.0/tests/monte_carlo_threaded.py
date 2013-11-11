@@ -3,7 +3,7 @@ A basic monte-carlo implementation for calculating pi.
 Assumes the argument supplied to the nodes is the node ID, starting from 0
 
 Node 0 creates the shared objects and sums the result,
-all other nodes fetches the objects and work on one object each
+all other nodes fetches the objects and each thread will work on one object each
 """
 
 import random, math, sys, os, time, logging
@@ -15,7 +15,7 @@ from Board import Board
 
 # SETUP
 start = time.time()
-myname = eval(sys.argv[1])
+myname = PyDOOMS.getNodeID()
 numberOfClients = eval(sys.argv[2])
 threadsPerNode = eval(sys.argv[3])
 

@@ -2,6 +2,7 @@
 Module providing the PyDOOMS API as well as the superclass for all shared objects when using PyDOOMS
 """
 
+import sys
 from ObjectStore import *
 from Communication import *
 
@@ -64,6 +65,13 @@ def shutdown():
     _comm.commShutdown()
 
 
+def getNodeID():
+    """
+    Return the ID of this node. Set at startup with command line argument
+    """
+    return nodeID
+
+
 def _reset():
     """
     Reset the object store and communication thread states.
@@ -71,6 +79,8 @@ def _reset():
     """
     _comm.reset()
 
+
+nodeID = eval(sys.argv[1])
 
 _store = ObjectStore()
 _comm = Communication(_store)
