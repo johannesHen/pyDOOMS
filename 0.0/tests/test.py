@@ -331,6 +331,31 @@ def WriteLoopTest3():
 
 
 
+def AttributeTest1():
+    """
+    Tests adding a new attribute to a shared object
+    """
+    if (myname == 0):
+        TestObject(1)
+
+    PyDOOMS.barrier()
+
+    obj = PyDOOMS.get(1)
+
+    if (myname == 0):
+        obj.newAttr = 2
+        PyDOOMS._comm.addOutgoingUpdate(obj.ID,"newAttr",obj.newAttr)
+
+    PyDOOMS.barrier()
+
+    val = obj.newAttr
+    if not (val == 2):
+        logging.critical("Process " + str(myname) + " Value is:"
+                         + str(val))
+        raise Exception
+
+
+
 def ShutdownTest():
     """
     Test shutdown commands
@@ -415,6 +440,9 @@ try:
         reset()
 
         WriteLoopTest3()
+        reset()
+
+        AttributeTest1()
         reset()
 
         if (myname == 0):
