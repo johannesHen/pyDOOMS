@@ -81,8 +81,8 @@ for i in range(threadsPerNode):
     t.start()
 
 # Wait for workers to finish
-for threads in workerThreads:
-    t.join()
+for thread in workerThreads:
+    thread.join()
 
 # Shut down commThread and quit
 PyDOOMS.shutdown()
