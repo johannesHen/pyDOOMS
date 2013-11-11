@@ -1,5 +1,5 @@
 
-class ObjectStore:
+class ObjectStore(object):
     """
     Class containing a dictionary of all shared objects and methods to manipulate it.
     Objects are indexed by their IDs.

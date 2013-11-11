@@ -3,7 +3,7 @@ import logging
 import Queue
 import CommThread
 
-class Communication:
+class Communication(object):
     """
     Class used to instantiate a communication thread
     and to forward outgoing message from the main thread to the communication thread using Queues
