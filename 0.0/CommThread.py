@@ -3,6 +3,7 @@ import threading
 import Queue
 import time
 import logging
+import sys
 
 
 class CommThread(threading.Thread):
@@ -37,6 +38,8 @@ class CommThread(threading.Thread):
         self.barrierUp = False
         self.barrierAcks = self.size - 1
         self.running = True
+        self.threads = eval(sys.argv[3])
+        self.barrierStartRequests = 0
 
 
     def broadcast(self, msg, tag):
@@ -123,25 +126,32 @@ class CommThread(threading.Thread):
         broadcasting that all updates has been sent, and finally process previously
         received updates
         """
-        #logging.debug("Process "+str(self.comm.rank) + " Starting barrier")
-        self.barrierUp = True
-        self.barrierAcks -= (self.size - 1)
-        self.mergeUpdates()
-        #logging.debug("Process "+str(self.comm.rank) + " Sending outgoing updates")
-        self.sendUpdates()
-        #logging.debug("Process "+str(self.comm.rank) + " Sending barrier ack")
-        self.broadcast(0, self.BARRIER_SENDS_DONE)
-        #logging.debug("Process "+str(self.comm.rank) + " Processing updates")
-        self.processUpdates()
+        #logging.debug("Process "+str(self.comm.rank) + " Barrier request")
+        self.barrierStartRequests += 1
 
-        """
-        If the thread has already received barrier done messages from all other nodes
-        it wont receive any more and the check for completion must be done here
-        """
-        if (self.barrierAcks == self.size - 1):
-            self.barrierUp = False
-            self.comm.barrier()
-            self.receiveQueue._put(self.BARRIER_DONE)
+        if self.barrierStartRequests == self.threads:
+            #logging.debug("Process "+str(self.comm.rank) + " Starting barrier")
+            self.barrierUp = True
+            self.barrierAcks -= (self.size - 1)
+            self.mergeUpdates()
+            #logging.debug("Process "+str(self.comm.rank) + " Sending outgoing updates")
+            self.sendUpdates()
+            #logging.debug("Process "+str(self.comm.rank) + " Sending barrier ack")
+            self.broadcast(0, self.BARRIER_SENDS_DONE)
+            #logging.debug("Process "+str(self.comm.rank) + " Processing updates")
+            self.processUpdates()
+
+            """
+            If the thread has already received barrier done messages from all other nodes
+            it wont receive any more and the check for completion must be done here
+            """
+            if (self.barrierAcks == self.size - 1):
+                self.barrierUp = False
+                self.comm.barrier()
+                for i in range(self.threads):
+                    self.receiveQueue._put(self.BARRIER_DONE)
+
+            self.barrierStartRequests = 0
 
 
     def barrierAck(self):
@@ -154,7 +164,8 @@ class CommThread(threading.Thread):
         if (self.barrierAcks == self.size - 1):
             self.barrierUp = False
             self.comm.barrier()
-            self.receiveQueue._put(self.BARRIER_DONE)
+            for i in range(self.threads):
+                    self.receiveQueue._put(self.BARRIER_DONE)
 
 
     def run(self):
