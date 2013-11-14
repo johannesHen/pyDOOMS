@@ -5,6 +5,7 @@ Module providing the PyDOOMS API as well as the superclass for all shared object
 import sys
 from ObjectStore import *
 from Communication import *
+from multiprocessing import Process, Manager
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s,%(msecs)d (%(threadName)-2s) %(message)s',datefmt='%M:%S'
@@ -59,6 +60,34 @@ def barrier():
     _comm.commBarrier()
 
 
+def execute(worker, *workerArgs):
+    """
+    Setup shared data structure, spawn worker processes, and shut down the mpi communication
+    """
+
+    # Setup multiprocessing objectStore dictionary
+    _store.setDictionary(Manager().dict())
+
+    # Start workers
+    workers = []
+    for i in range(workersPerNode):
+        print "Starting " + str(worker) + " with args " + str(workerArgs)
+        argList = []
+        for arg in reversed(workerArgs):
+            argList.append(arg)
+
+        p = Process(target=worker, args=((nodeID*workersPerNode+i,)+workerArgs)) # Make general
+        workers.append(p)
+        p.start()
+
+    # Wait for workers to finish
+    for p in workers:
+        p.join()
+
+    # Shut down commThread and quit
+    shutdown()
+
+
 def shutdown():
     """
     Gracefully shuts down the communicating MPI thread
@@ -73,6 +102,13 @@ def getNodeID():
     return nodeID
 
 
+def getNumOfWorkers():
+    """
+    The total number of workers in the cluster
+    """
+    return numberOfNodes*workersPerNode
+
+
 def _reset():
     """
     Reset the object store and communication thread states.
@@ -82,6 +118,9 @@ def _reset():
 
 
 nodeID = eval(sys.argv[1])
+numberOfNodes = eval(sys.argv[2])
+workersPerNode = eval(sys.argv[3])
+
 
 _store = ObjectStore()
 _comm = Communication(_store)
