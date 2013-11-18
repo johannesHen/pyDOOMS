@@ -1,24 +1,30 @@
 import time
 import logging
-#import Queue
+import Queue as q
 from multiprocessing import Queue
 import CommThread
 
 class Communication(object):
     """
     Class used to instantiate a communication thread
-    and to forward outgoing message from the main thread to the communication thread using Queues
+    and to handle communication between workers and the communication thread.
     """
 
-    def __init__(self, store):
+    def __init__(self, store, workers):
         """
-        Initiates queues for thread communication
-        and starts the communicating (MPI) thread
+        Start the communicating (MPI) thread and initialize one queue for messages to the CommThread
+        and one queue for each worker to receive messages from the CommThread.
         """
         self.objStore = store
-        self.sendQueue = Queue()#Queue.Queue()
-        self.receiveQueue = Queue()#Queue.Queue()
-        self.commThread = CommThread.CommThread(self, self.sendQueue, self.receiveQueue)
+        self.sendQueue = Queue()
+        self.receiveQueue = None
+        self.workers = workers
+
+        self.receiveQueues = []
+        for i in range(workers):
+            self.receiveQueues.append(Queue())
+
+        self.commThread = CommThread.CommThread(self, self.workers, self.sendQueue, self.receiveQueues)
         self.commThread.start()
 
 
@@ -47,8 +53,8 @@ class Communication(object):
             try:
                 if (self.receiveQueue.get(False) == self.commThread.BARRIER_DONE):
                     return
-            except Exception:
-                time.sleep(0.00007)
+            except q.Empty:
+                time.sleep(0.00001)
 
 
     def commShutdown(self):
@@ -72,5 +78,6 @@ class Communication(object):
         self.objStore.objects.clear()
 
         self.sendQueue = Queue()
-        self.commThread = CommThread.CommThread(self, self.sendQueue, self.receiveQueue)
+        self.receiveQueue = Queue()
+        self.commThread = CommThread.CommThread(self, self.workers, self.sendQueue, self.receiveQueues)
         self.commThread.start()

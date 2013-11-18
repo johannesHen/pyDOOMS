@@ -28,17 +28,17 @@ class CommThread(threading.Thread):
     outgoingUpdatesBufferSize = 10
 
 
-    def __init__(self, comm, sQueue, rQueue):
+    def __init__(self, comm, workers, sQueue, rQueues):
         threading.Thread.__init__(self)
         self.outgoingUpdates = []
         self.incomingUpdates = []
         self.communication = comm
         self.sendQueue = sQueue
-        self.receiveQueue = rQueue
+        self.receiveQueues = rQueues
         self.barrierUp = False
         self.barrierAcks = self.size - 1
         self.running = True
-        self.threads = eval(sys.argv[3])
+        self.workers = workers
         self.barrierStartRequests = 0
 
 
@@ -124,14 +124,15 @@ class CommThread(threading.Thread):
 
     def barrierStart(self):
         """
-        Initialize barrier synchronization by merging and sending outgoing updates,
-        broadcasting that all updates has been sent, and finally process previously
-        received updates
+        Initialize barrier synchronization when all local workers has issued a request to start.
+        outgoing updates are merged before transmitted, and a broadcast is made to signal that all updates has been sent.
+        Finally, previously received updates are processed and the number of barrier acks received is checked
+        to see if MPI_barrier should be called.
         """
         #logging.debug("Process "+str(self.comm.rank) + " Barrier request")
         self.barrierStartRequests += 1
 
-        if self.barrierStartRequests == self.threads:
+        if self.barrierStartRequests == self.workers:
             #logging.debug("Process "+str(self.comm.rank) + " Starting barrier")
             self.barrierUp = True
             self.barrierAcks -= (self.size - 1)
@@ -148,26 +149,26 @@ class CommThread(threading.Thread):
             it wont receive any more and the check for completion must be done here
             """
             if (self.barrierAcks == self.size - 1):
+                self.barrierStartRequests -= self.workers
                 self.barrierUp = False
                 self.comm.barrier()
-                for i in range(self.threads):
-                    self.receiveQueue.put(self.BARRIER_DONE)
-
-            self.barrierStartRequests = 0
+                for i in range(self.workers):
+                    self.receiveQueues[i].put(self.BARRIER_DONE)
 
 
     def barrierAck(self):
         """
         Increment the number of barrierAcks and if all remote nodes has sent a BARRIER_DONE message,
-        mpi4py's barrier function is called and later a BARRIER_DONE message is sent to the main thread,
+        MPI_barrier is called and later a BARRIER_DONE message is sent to the workers,
         to indicate that the barrier synchronization is done
         """
         self.barrierAcks += 1
         if (self.barrierAcks == self.size - 1):
+            self.barrierStartRequests -= self.workers
             self.barrierUp = False
             self.comm.barrier()
-            for i in range(self.threads):
-                    self.receiveQueue.put(self.BARRIER_DONE)
+            for i in range(self.workers):
+                    self.receiveQueues[i].put(self.BARRIER_DONE)
 
 
     def run(self):

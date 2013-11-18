@@ -62,7 +62,8 @@ def barrier():
 
 def execute(worker, *workerArgs):
     """
-    Setup shared data structure, spawn worker processes, and shut down the mpi communication
+    Make the object store dictionary shared between processes, spawn worker processes,
+    and shut down the mpi communication when all workers are done
     """
 
     # Setup multiprocessing objectStore dictionary
@@ -71,12 +72,10 @@ def execute(worker, *workerArgs):
     # Start workers
     workers = []
     for i in range(workersPerNode):
-        print "Starting " + str(worker) + " with args " + str(workerArgs)
         argList = []
         for arg in reversed(workerArgs):
             argList.append(arg)
-
-        p = Process(target=worker, args=((nodeID*workersPerNode+i,)+workerArgs)) # Make general
+        p = Process(target=_start, args=(worker, (nodeID*workersPerNode+i,)+workerArgs, _comm.receiveQueues[i]))
         workers.append(p)
         p.start()
 
@@ -86,6 +85,16 @@ def execute(worker, *workerArgs):
 
     # Shut down commThread and quit
     shutdown()
+
+
+def _start(worker, workerArgs, q):
+    """
+    Sets the provided queue as the queue to use for receiving messages from the CommThread,
+    and starts the worker
+    """
+    _comm.receiveQueue = q
+
+    worker(*workerArgs)
 
 
 def shutdown():
@@ -123,4 +132,4 @@ workersPerNode = eval(sys.argv[3])
 
 
 _store = ObjectStore()
-_comm = Communication(_store)
+_comm = Communication(_store, workersPerNode)

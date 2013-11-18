@@ -1,6 +1,6 @@
 """
 Module containing basic tests for different aspects of the PyDOOMS library
-At the moment most test assumes that there are 4 nodes running
+At the moment most test assumes that there are 4 nodes running, and only 1 worker per node
 """
 
 import sys, os, time
@@ -10,13 +10,11 @@ import PyDOOMS
 from TestObject import TestObject
 
 
-myname = eval(sys.argv[1])
-
 def printDict():
     """
     Prints the contents of the object store in a node.
     """
-    objects = PyDOOMS._store.objects
+    objects = PyDOOMS._store.objects.copy()
     print "-------------------------------------Process: ",myname," --------------------------------------------"
     for element in objects:
         if (isinstance(objects[element],TestObject)):
@@ -30,11 +28,9 @@ def reset():
     Barrier is needed to stop messages received from nodes already in the next test being removed
     """
     PyDOOMS._reset()
-    PyDOOMS.barrier()
 
 
-
-def SpreadTest1():
+def SpreadTest1(workerID):
     """
     Tests creation and spreading of objects residing in node 0
     All nodes should have all objects in their local object store
@@ -52,13 +48,13 @@ def SpreadTest1():
     time.sleep(0.0001)
 
     if (len(PyDOOMS._store.objects) != numOfObj):
-        logging.critical("Process " + str(myname) + " Number of objects:" + str(len(PyDOOMS._store.objects)))
+        logging.critical("Node " + str(myname) + " Number of objects:" + str(len(PyDOOMS._store.objects)))
         printDict()
         raise Exception
 
 
 
-def SpreadTest2():
+def SpreadTest2(workerID):
     """
     Tests creation and spreading of objects residing in several different processes
     All nodes should have all objects in their local object store
@@ -77,13 +73,13 @@ def SpreadTest2():
     time.sleep(0.0001)
 
     if (len(PyDOOMS._store.objects) != objectsPerNode*nodes):
-        logging.critical("Process " + str(myname) + " Number of objects:" + str(len(PyDOOMS._store.objects)))
+        logging.critical("Node " + str(myname) + " Number of objects:" + str(len(PyDOOMS._store.objects)))
         printDict()
         raise Exception
 
 
 
-def GetTest1():
+def GetTest1(workerID):
     """
     Tests retrieving object references from local object store and accessing objects
     """
@@ -102,7 +98,7 @@ def GetTest1():
 
 
 
-def ReadLoopTest1():
+def ReadLoopTest1(workerID):
     """
     Tests reading from a shared object before and after object value has been changed by another node
     """
@@ -117,18 +113,20 @@ def ReadLoopTest1():
 
     if (myname == 0):
         obj.value = 1
+        PyDOOMS._store.addObject(obj)
         PyDOOMS._comm.addOutgoingUpdate(1, "value", obj.value)
 
     PyDOOMS.barrier()
+    obj = PyDOOMS.get(1)
 
     if not (oldValue == 0 and obj.value == 1):
-        logging.critical("Process " + str(myname) + " Values are:"
+        logging.critical("Node " + str(myname) + " Values are:"
                          + str(oldValue) + "," + str(obj.value) + " ")
         raise Exception
 
 
 
-def ReadLoopTest2():
+def ReadLoopTest2(workerID):
     """
     Tests reading from multiple shard objects by doing a busy-wait for attribute change
     Changes are synchronized over several barriers
@@ -141,41 +139,44 @@ def ReadLoopTest2():
 
     PyDOOMS.barrier()
 
-    obj1 = PyDOOMS.get(1)
-    obj2 = PyDOOMS.get(2)
-    obj3 = PyDOOMS.get(3)
-    oldObj1Value = obj1.value
-    oldObj2Value = obj2.value
-    oldObj3Value = obj3.value
+    oldObj1Value = PyDOOMS.get(1).value
+    oldObj2Value = PyDOOMS.get(2).value
+    oldObj3Value = PyDOOMS.get(3).value
 
 
     if (myname is not 0):
-        while (obj1.value == 0 or obj2.value == 0 or obj3.value == 0):
+        while (PyDOOMS.get(1).value == 0 or PyDOOMS.get(2).value == 0 or PyDOOMS.get(3).value == 0):
             PyDOOMS.barrier()
 
     elif (myname == 0):
+        obj1 = PyDOOMS.get(1)
         obj1.value = obj1.value + 1
+        PyDOOMS._store.addObject(obj1)
         PyDOOMS._comm.addOutgoingUpdate(1,"value",1)
         PyDOOMS.barrier()
 
+        obj2 = PyDOOMS.get(2)
         obj2.value = obj2.value + 1
+        PyDOOMS._store.addObject(obj2)
         PyDOOMS._comm.addOutgoingUpdate(2,"value",1)
         PyDOOMS.barrier()
 
+        obj3 = PyDOOMS.get(3)
         obj3.value = obj3.value + 1
+        PyDOOMS._store.addObject(obj3)
         PyDOOMS._comm.addOutgoingUpdate(3,"value",1)
         PyDOOMS.barrier()
 
-    if not (oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and obj1.value == 1 and obj2.value == 1 and obj3.value == 1):
-        logging.critical("Process " + str(myname) + " Values are:"
-                         + str(oldObj1Value) + "," + str(obj1.value) + " "
-                         + str(oldObj2Value) + "," + str(obj2.value) + " "
-                         + str(oldObj3Value) + "," + str(obj3.value) + " ")
+    if not (oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and PyDOOMS.get(1).value == 1 and PyDOOMS.get(2).value == 1 and PyDOOMS.get(3).value == 1):
+        logging.critical("Node " + str(myname) + " Values are:"
+                         + str(oldObj1Value) + "," + str(PyDOOMS.get(1).value) + " "
+                         + str(oldObj2Value) + "," + str(PyDOOMS.get(2).value) + " "
+                         + str(oldObj3Value) + "," + str(PyDOOMS.get(3).value) + " ")
         raise Exception
 
 
 
-def ReadLoopTest3():
+def ReadLoopTest3(workerID):
     """
     Tests reading from multiple shard objects by doing a busy-wait for attribute change
     Changes are synchronized in one barrier
@@ -188,37 +189,40 @@ def ReadLoopTest3():
 
     PyDOOMS.barrier()
 
-    obj1 = PyDOOMS.get(1)
-    obj2 = PyDOOMS.get(2)
-    obj3 = PyDOOMS.get(3)
-    oldObj1Value = obj1.value
-    oldObj2Value = obj2.value
-    oldObj3Value = obj3.value
+    oldObj1Value = PyDOOMS.get(1).value
+    oldObj2Value = PyDOOMS.get(2).value
+    oldObj3Value = PyDOOMS.get(3).value
 
 
     if (myname is not 0):
-        while (obj1.value == 0 or obj2.value == 0 or obj3.value == 0):
+        while (PyDOOMS.get(1).value == 0 or PyDOOMS.get(2).value == 0 or PyDOOMS.get(3).value == 0):
             PyDOOMS.barrier()
 
     elif (myname == 0):
+        obj1 = PyDOOMS.get(1)
+        obj2 = PyDOOMS.get(2)
+        obj3 = PyDOOMS.get(3)
         obj1.value = obj1.value + 1
         obj2.value = obj2.value + 1
         obj3.value = obj3.value + 1
+        PyDOOMS._store.addObject(obj1)
+        PyDOOMS._store.addObject(obj2)
+        PyDOOMS._store.addObject(obj3)
         PyDOOMS._comm.addOutgoingUpdate(1,"value",1)
         PyDOOMS._comm.addOutgoingUpdate(2,"value",1)
         PyDOOMS._comm.addOutgoingUpdate(3,"value",1)
         PyDOOMS.barrier()
 
-    if not (oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and obj1.value == 1 and obj2.value == 1 and obj3.value == 1):
-        logging.critical("Process " + str(myname) + " Values are:"
-                         + str(oldObj1Value) + "," + str(obj1.value) + " "
-                         + str(oldObj2Value) + "," + str(obj2.value) + " "
-                         + str(oldObj3Value) + "," + str(obj3.value) + " ")
+    if not (oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and PyDOOMS.get(1).value == 1 and PyDOOMS.get(2).value == 1 and PyDOOMS.get(3).value == 1):
+        logging.critical("Node " + str(myname) + " Values are:"
+                         + str(oldObj1Value) + "," + str(PyDOOMS.get(1).value) + " "
+                         + str(oldObj2Value) + "," + str(PyDOOMS.get(2).value) + " "
+                         + str(oldObj3Value) + "," + str(PyDOOMS.get(3).value) + " ")
         raise Exception
 
 
 
-def WriteLoopTest1():
+def WriteLoopTest1(workerID):
     """
     Test all nodes writing and reading to/from a single shared object, one at a time
     """
@@ -228,23 +232,24 @@ def WriteLoopTest1():
 
     PyDOOMS.barrier()
 
-    obj = PyDOOMS.get(1)
-    oldObjValue = obj.value
+    oldObjValue = PyDOOMS.get(1).value
 
     for i in range(nodes):
         if (myname == i):
+            obj = PyDOOMS.get(1)
             obj.value += 1
+            PyDOOMS._store.addObject(obj)
             PyDOOMS._comm.addOutgoingUpdate(1,"value",obj.value)
         PyDOOMS.barrier()
 
-    if not (oldObjValue == 0 and obj.value == nodes):
-        logging.critical("Process " + str(myname) + " Values are:"
-                         + str(oldObjValue) + "," + str(obj.value) + " ")
+    if not (oldObjValue == 0 and PyDOOMS.get(1).value == nodes):
+        logging.critical("Node " + str(myname) + " Values are:"
+                         + str(oldObjValue) + "," + str(PyDOOMS.get(1).value) + " ")
         raise Exception
 
 
 
-def WriteLoopTest2():
+def WriteLoopTest2(workerID):
     """
     Tests all nodes writing to different shared objects (one object is written by only one node)
     and all nodes reading from all shared objects
@@ -260,33 +265,30 @@ def WriteLoopTest2():
 
     PyDOOMS.barrier()
 
-    obj0 = PyDOOMS.get(0)
-    obj1 = PyDOOMS.get(1)
-    obj2 = PyDOOMS.get(2)
-    obj3 = PyDOOMS.get(3)
-    oldObj0Value = obj0.value
-    oldObj1Value = obj1.value
-    oldObj2Value = obj2.value
-    oldObj3Value = obj3.value
+    oldObj0Value = PyDOOMS.get(0).value
+    oldObj1Value = PyDOOMS.get(1).value
+    oldObj2Value = PyDOOMS.get(2).value
+    oldObj3Value = PyDOOMS.get(3).value
 
     while (PyDOOMS.get(myname).value < threshold):
         obj = PyDOOMS.get(myname)
         obj.value += 1
+        PyDOOMS._store.addObject(obj)
         PyDOOMS._comm.addOutgoingUpdate(myname,"value",obj.value)
         PyDOOMS.barrier()
 
     if not (oldObj0Value == 0 and oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and
-                obj0.value == threshold and obj1.value == threshold and obj2.value == threshold and obj3.value == threshold):
-        logging.critical("Process " + str(myname) + " Values are:"
-                         + str(oldObj0Value) + "," + str(obj0.value) + " "
-                         + str(oldObj1Value) + "," + str(obj1.value) + " "
-                         + str(oldObj2Value) + "," + str(obj2.value) + " "
-                         + str(oldObj3Value) + "," + str(obj3.value) + " ")
+                PyDOOMS.get(0).value == threshold): #and PyDOOMS.get(1).value == threshold and PyDOOMS.get(2).value == threshold and PyDOOMS.get(3).value == threshold):
+        logging.critical("Node " + str(myname) + " Values are:"
+                         + str(oldObj0Value) + "," + str(PyDOOMS.get(0).value) + " "
+                         + str(oldObj1Value) + "," + str(PyDOOMS.get(1).value) + " "
+                         + str(oldObj2Value) + "," + str(PyDOOMS.get(2).value) + " "
+                         + str(oldObj3Value) + "," + str(PyDOOMS.get(3).value) + " ")
         raise Exception
 
 
 
-def WriteLoopTest3():
+def WriteLoopTest3(workerID):
     """
     Test writing and reading to/from multiple shared object from each node
     """
@@ -299,17 +301,17 @@ def WriteLoopTest3():
 
     PyDOOMS.barrier()
 
-    obj0 = PyDOOMS.get(0)
-    obj1 = PyDOOMS.get(1)
-    obj2 = PyDOOMS.get(2)
-    obj3 = PyDOOMS.get(3)
-    oldObj0Value = obj0.value
-    oldObj1Value = obj1.value
-    oldObj2Value = obj2.value
-    oldObj3Value = obj3.value
+    oldObj0Value = PyDOOMS.get(0).value
+    oldObj1Value = PyDOOMS.get(1).value
+    oldObj2Value = PyDOOMS.get(2).value
+    oldObj3Value = PyDOOMS.get(3).value
 
     for i in range(nodes):
         if (myname == i):
+            obj0 = PyDOOMS.get(0)
+            obj1 = PyDOOMS.get(1)
+            obj2 = PyDOOMS.get(2)
+            obj3 = PyDOOMS.get(3)
             obj0.value += 1
             obj1.value += 1
             obj2.value += 1
@@ -318,20 +320,24 @@ def WriteLoopTest3():
             PyDOOMS._comm.addOutgoingUpdate(obj1.ID,"value",obj1.value)
             PyDOOMS._comm.addOutgoingUpdate(obj2.ID,"value",obj2.value)
             PyDOOMS._comm.addOutgoingUpdate(obj3.ID,"value",obj3.value)
+            PyDOOMS._store.addObject(obj0)
+            PyDOOMS._store.addObject(obj1)
+            PyDOOMS._store.addObject(obj2)
+            PyDOOMS._store.addObject(obj3)
         PyDOOMS.barrier()
 
     if not (oldObj0Value == 0 and oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and
-                obj0.value == nodes and obj1.value == nodes and obj2.value == nodes and obj3.value == nodes):
-        logging.critical("Process " + str(myname) + " Values are:"
-                         + str(oldObj0Value) + "," + str(obj0.value) + " "
-                         + str(oldObj1Value) + "," + str(obj1.value) + " "
-                         + str(oldObj2Value) + "," + str(obj2.value) + " "
-                         + str(oldObj3Value) + "," + str(obj3.value) + " ")
+                PyDOOMS.get(0).value == nodes and PyDOOMS.get(1).value == nodes and PyDOOMS.get(2).value == nodes and PyDOOMS.get(3).value == nodes):
+        logging.critical("Node " + str(myname) + " Values are:"
+                         + str(oldObj0Value) + "," + str(PyDOOMS.get(0).value) + " "
+                         + str(oldObj1Value) + "," + str(PyDOOMS.get(1).value) + " "
+                         + str(oldObj2Value) + "," + str(PyDOOMS.get(2).value) + " "
+                         + str(oldObj3Value) + "," + str(PyDOOMS.get(3).value) + " ")
         raise Exception
 
 
 
-def AttributeTest1():
+def AttributeTest1(workerID):
     """
     Tests adding a new attribute to a shared object
     """
@@ -345,18 +351,19 @@ def AttributeTest1():
     if (myname == 0):
         obj.newAttr = 2
         PyDOOMS._comm.addOutgoingUpdate(obj.ID,"newAttr",obj.newAttr)
+        PyDOOMS._store.addObject(obj)
 
     PyDOOMS.barrier()
 
-    val = obj.newAttr
+    val = PyDOOMS.get(1).newAttr
     if not (val == 2):
-        logging.critical("Process " + str(myname) + " Value is:"
+        logging.critical("Node " + str(myname) + " Value is:"
                          + str(val))
         raise Exception
 
 
 
-def ShutdownTest():
+def ShutdownTest(workerID):
     """
     Test shutdown commands
     """
@@ -374,8 +381,7 @@ def ShutdownTest():
         raise Exception
 
 
-
-def BarrierTest():
+def BarrierTest(workerID):
     """
     Test barrier by incrementing a single value over multiple barriers
     """
@@ -384,7 +390,7 @@ def BarrierTest():
     results = []
 
     if (myname == 0):
-        for i in range(nodes):
+        for i in range(workersPerNode*nodes):
             TestObject(i)
 
     PyDOOMS.barrier()
@@ -406,43 +412,72 @@ def BarrierTest():
 
 
 
+def WorkerTest(workerID):
+
+    if (workerID == 0):
+        for i in range(workersPerNode*nodes):
+            TestObject(i)
+
+    PyDOOMS.barrier()
+    obj = PyDOOMS.get(workerID)
+
+    obj.value = obj.value + 1
+    PyDOOMS._store.addObject(obj)
+    PyDOOMS._comm.addOutgoingUpdate(obj.ID,"value",obj.value)
+
+    PyDOOMS.barrier()
+
+    if (workerID == 0):
+        for i in range(workersPerNode*nodes):
+            if PyDOOMS.get(i).value != 1:
+                logging.debug("Object " + str(i) + " has value " + str(PyDOOMS.get(i).value))
+                raise Exception
+
+
+
 # ARGUMENTS
-nodes = 4
-testLoops = 10000
+testLoops = 100
+nodes = eval(sys.argv[2])
+workersPerNode = eval(sys.argv[3])
+myname = eval(sys.argv[1])
+
 
 try:
     for i in range(testLoops):
-        BarrierTest()
+        PyDOOMS.execute(SpreadTest1)
         reset()
 
-        SpreadTest1()
+        PyDOOMS.execute(SpreadTest2)
         reset()
 
-        SpreadTest2()
+        PyDOOMS.execute(GetTest1)
         reset()
 
-        GetTest1()
+        PyDOOMS.execute(ReadLoopTest1)
         reset()
 
-        ReadLoopTest1()
+        PyDOOMS.execute(ReadLoopTest2)
         reset()
 
-        ReadLoopTest2()
+        PyDOOMS.execute(ReadLoopTest3)
         reset()
 
-        ReadLoopTest3()
+        PyDOOMS.execute(WriteLoopTest1)
         reset()
 
-        WriteLoopTest1()
+        PyDOOMS.execute(WriteLoopTest2)
         reset()
 
-        WriteLoopTest2()
+        PyDOOMS.execute(WriteLoopTest3)
         reset()
 
-        WriteLoopTest3()
+        PyDOOMS.execute(AttributeTest1)
         reset()
 
-        AttributeTest1()
+        PyDOOMS.execute(BarrierTest)
+        reset()
+
+        PyDOOMS.execute(WorkerTest)
         reset()
 
         if (myname == 0):
@@ -456,6 +491,6 @@ except Exception as e:
     logging.critical("Tests failed")
 
 finally:
-    ShutdownTest()
+    PyDOOMS.execute(ShutdownTest)
 
     PyDOOMS.shutdown()

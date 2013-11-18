@@ -21,9 +21,9 @@ def worker(workerID, myDarts):
         for boardID in range(PyDOOMS.getNumOfWorkers()):
             Board(boardID)
 
-    #logging.debug("Node: " + str(myname) + "_" + str(workerID) +  " entering barrier")
+    #logging.debug("Worker: " + str(workerID) +  " entering barrier")
     PyDOOMS.barrier()
-    #logging.debug("Node: " + str(myname) + "_" + str(workerID) +  " exiting barrier")
+    #logging.debug("Worker: " + str(workerID) +  " exiting barrier")
     board = PyDOOMS.get(workerID)
 
     # Compute
@@ -45,9 +45,9 @@ def worker(workerID, myDarts):
     PyDOOMS._comm.addOutgoingUpdate(board.ID, "ready", board.ready)
 
 
-    #logging.debug("Node: " + str(myname) + "_" + str(workerID) +  " entering second barrier")
+    #logging.debug("Worker: " + str(workerID) +  " entering second barrier")
     PyDOOMS.barrier()
-    #logging.debug("Node: " + str(myname) + "_" + str(workerID) +  " exiting second barrier")
+    #logging.debug("Worker: " + str(workerID) +  " exiting second barrier")
 
     # Sum result
     pi = 0.0
@@ -65,11 +65,11 @@ def worker(workerID, myDarts):
 
         logging.debug("Pi: " + str(pi / PyDOOMS.getNumOfWorkers()) + " calculated in " + str(time.time() - start) + " seconds.")
 
-    logging.debug("Worker: " + str(myname) + "_" + str(workerID) + " dead. Worked for " + str(time.time() - start) + " seconds.")
+    logging.debug("Worker: " + str(workerID) + " dead. Worked for " + str(time.time() - start) + " seconds.")
 
 
 
-darts = 4000000 / PyDOOMS.getNumOfWorkers()
+darts = 40000 / PyDOOMS.getNumOfWorkers()
 
 PyDOOMS.execute(worker, darts)
 
