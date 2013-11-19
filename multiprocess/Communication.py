@@ -1,7 +1,6 @@
 import time
 import logging
-import Queue as q
-from multiprocessing import Queue
+from multiprocessing import Queue, Pipe
 import CommThread
 
 class Communication(object):
@@ -13,18 +12,18 @@ class Communication(object):
     def __init__(self, store, workers):
         """
         Start the communicating (MPI) thread and initialize one queue for messages to the CommThread
-        and one queue for each worker to receive messages from the CommThread.
+        and one pipe for each worker to receive messages from the CommThread.
         """
         self.objStore = store
         self.sendQueue = Queue()
-        self.receiveQueue = None
+        self.receivePipe = None
         self.workers = workers
 
-        self.receiveQueues = []
+        self.receivePipes = []
         for i in range(workers):
-            self.receiveQueues.append(Queue())
+            self.receivePipes.append(Pipe())
 
-        self.commThread = CommThread.CommThread(self, self.workers, self.sendQueue, self.receiveQueues)
+        self.commThread = CommThread.CommThread(self, self.workers, self.sendQueue, self.receivePipes)
         self.commThread.start()
 
 
@@ -49,12 +48,8 @@ class Communication(object):
         """
         self.sendQueue.put((self.commThread.BARRIER_START, None))
 
-        while (True):
-            try:
-                if (self.receiveQueue.get(False) == self.commThread.BARRIER_DONE):
-                    return
-            except q.Empty:
-                time.sleep(0.00001)
+        if (self.receivePipe.recv() == self.commThread.BARRIER_DONE):
+            return
 
 
     def commShutdown(self):
@@ -78,6 +73,5 @@ class Communication(object):
         self.objStore.objects.clear()
 
         self.sendQueue = Queue()
-        self.receiveQueue = Queue()
-        self.commThread = CommThread.CommThread(self, self.workers, self.sendQueue, self.receiveQueues)
+        self.commThread = CommThread.CommThread(self, self.workers, self.sendQueue, self.receivePipes)
         self.commThread.start()

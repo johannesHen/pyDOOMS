@@ -28,13 +28,13 @@ class CommThread(threading.Thread):
     outgoingUpdatesBufferSize = 10
 
 
-    def __init__(self, comm, workers, sQueue, rQueues):
+    def __init__(self, comm, workers, sQueue, rPipes):
         threading.Thread.__init__(self)
         self.outgoingUpdates = []
         self.incomingUpdates = []
         self.communication = comm
         self.sendQueue = sQueue
-        self.receiveQueues = rQueues
+        self.receivePipes = rPipes
         self.barrierUp = False
         self.barrierAcks = self.size - 1
         self.running = True
@@ -153,7 +153,7 @@ class CommThread(threading.Thread):
                 self.barrierUp = False
                 self.comm.barrier()
                 for i in range(self.workers):
-                    self.receiveQueues[i].put(self.BARRIER_DONE)
+                    self.receivePipes[i][1].send(self.BARRIER_DONE)
 
 
     def barrierAck(self):
@@ -168,7 +168,7 @@ class CommThread(threading.Thread):
             self.barrierUp = False
             self.comm.barrier()
             for i in range(self.workers):
-                    self.receiveQueues[i].put(self.BARRIER_DONE)
+                    self.receivePipes[i][1].send(self.BARRIER_DONE)
 
 
     def run(self):

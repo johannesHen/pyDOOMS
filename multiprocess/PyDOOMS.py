@@ -75,7 +75,7 @@ def execute(worker, *workerArgs):
         argList = []
         for arg in reversed(workerArgs):
             argList.append(arg)
-        p = Process(target=_start, args=(worker, (nodeID*workersPerNode+i,)+workerArgs, _comm.receiveQueues[i]))
+        p = Process(target=_start, args=(worker, (nodeID*workersPerNode+i,)+workerArgs, _comm.receivePipes[i][0]))
         workers.append(p)
         p.start()
 
@@ -87,12 +87,12 @@ def execute(worker, *workerArgs):
     shutdown()
 
 
-def _start(worker, workerArgs, q):
+def _start(worker, workerArgs, p):
     """
-    Sets the provided queue as the queue to use for receiving messages from the CommThread,
+    Sets the provided pipe as the pipe to use for receiving messages from the CommThread,
     and starts the worker
     """
-    _comm.receiveQueue = q
+    _comm.receivePipe = p
 
     worker(*workerArgs)
 
