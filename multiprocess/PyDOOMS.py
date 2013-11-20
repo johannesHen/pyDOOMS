@@ -49,15 +49,10 @@ def get(id):
             raise Exception('Object not found')
     except KeyError:
         time.sleep(0.0001)
-        logging.debug("No matching object found, trying again...")
+        logging.debug("No matching object found, trying again..." + str(_store.objects))
         return get(id)
 
 
-def barrier():
-    """
-    Triggers a barrier synchronization among all nodes
-    """
-    _comm.commBarrier()
 
 
 def execute(worker, *workerArgs):
@@ -66,8 +61,15 @@ def execute(worker, *workerArgs):
     and shut down the mpi communication when all workers are done
     """
 
-    # Setup multiprocessing objectStore dictionary
-    _store.setDictionary(Manager().dict())
+    # Initialize object store and communication thread
+    global _store, _comm, nodeID
+
+    _store = ObjectStore()
+    _comm = Communication(_store, workersPerNode)
+
+    while (not _comm.commThread.isAlive()):
+            time.sleep(0.000001)
+    nodeID = _comm.commThread.rank
 
     # Start workers
     workers = []
@@ -87,6 +89,13 @@ def execute(worker, *workerArgs):
     shutdown()
 
 
+def barrier():
+    """
+    Triggers a barrier synchronization among all nodes
+    """
+    _comm.commBarrier()
+
+
 def _start(worker, workerArgs, p):
     """
     Sets the provided pipe as the pipe to use for receiving messages from the CommThread,
@@ -104,6 +113,14 @@ def shutdown():
     _comm.commShutdown()
 
 
+def _reset():
+    """
+    Reset the object store and communication thread states.
+    Only used for testing
+    """
+    _comm.reset()
+
+
 def getNodeID():
     """
     Return the ID of this node. Set at startup with command line argument
@@ -118,18 +135,10 @@ def getNumOfWorkers():
     return numberOfNodes*workersPerNode
 
 
-def _reset():
-    """
-    Reset the object store and communication thread states.
-    Only used for testing
-    """
-    _comm.reset()
 
 
-nodeID = eval(sys.argv[1])
-numberOfNodes = eval(sys.argv[2])
-workersPerNode = eval(sys.argv[3])
+numberOfNodes = eval(sys.argv[1])
+workersPerNode = eval(sys.argv[2])
 
-
-_store = ObjectStore()
-_comm = Communication(_store, workersPerNode)
+_comm = None
+_store = None

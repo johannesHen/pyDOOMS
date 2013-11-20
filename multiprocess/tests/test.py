@@ -413,6 +413,9 @@ def BarrierTest(workerID):
 
 
 def WorkerTest(workerID):
+    """
+    This test support multiple workers per node
+    """
 
     if (workerID == 0):
         for i in range(workersPerNode*nodes):
@@ -444,7 +447,7 @@ myname = eval(sys.argv[1])
 
 try:
     for i in range(testLoops):
-        PyDOOMS.execute(SpreadTest1)
+        """PyDOOMS.execute(SpreadTest1)
         reset()
 
         PyDOOMS.execute(SpreadTest2)
@@ -475,7 +478,7 @@ try:
         reset()
 
         PyDOOMS.execute(BarrierTest)
-        reset()
+        reset()"""
 
         PyDOOMS.execute(WorkerTest)
         reset()

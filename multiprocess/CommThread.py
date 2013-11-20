@@ -189,10 +189,6 @@ class CommThread(threading.Thread):
                         #logging.debug("Process "+str(self.comm.rank) + " Spreading " + str(msg))
                         self.broadcast(msg, self.SPREAD_OBJECT)
 
-                    elif (cmd == self.BARRIER_START):
-                        #logging.debug("Process "+str(self.comm.rank) + " Starting barrier")
-                        self.barrierStart()
-
                     elif (cmd == self.OUTGOING_UPDATE):
                         #logging.debug("Process: " + str(self.rank) + " Adding outgoing update:" + str(msg))
                         if (len(self.outgoingUpdates) >= self.outgoingUpdatesBufferSize):
@@ -201,6 +197,10 @@ class CommThread(threading.Thread):
                         self.outgoingUpdates.append(msg)
                         if msg in self.incomingUpdates:
                             logging.debug("Process: " + str(self.rank) + " incoming and outgoing update for same message in cmd=OUTGOINGUPDATE")
+
+                    elif (cmd == self.BARRIER_START):
+                        #logging.debug("Process "+str(self.comm.rank) + " Starting barrier")
+                        self.barrierStart()
 
                     elif (cmd == self.SHUTDOWN):
                         #logging.debug("Shutting down")

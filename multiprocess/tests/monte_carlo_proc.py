@@ -15,7 +15,6 @@ import PyDOOMS
 # Worker function
 def worker(workerID, myDarts):
     start = time.time()
-    myname = PyDOOMS.getNodeID()
 
     if (workerID == 0):
         for boardID in range(PyDOOMS.getNumOfWorkers()):
@@ -39,7 +38,7 @@ def worker(workerID, myDarts):
         myDarts = myDarts - 1
     board.ready = True
 
-    PyDOOMS._store.addObject(board) # Manager.dict bug makes changes in objects in the dict not written to dict
+    PyDOOMS._store.addObject(board) # Manager.dict bug makes changes in objects in the dict not written to dict unless changing the dict directly
     PyDOOMS._comm.addOutgoingUpdate(board.ID, "hits", board.hits)
     PyDOOMS._comm.addOutgoingUpdate(board.ID, "darts", board.darts)
     PyDOOMS._comm.addOutgoingUpdate(board.ID, "ready", board.ready)
@@ -65,11 +64,11 @@ def worker(workerID, myDarts):
 
         logging.debug("Pi: " + str(pi / PyDOOMS.getNumOfWorkers()) + " calculated in " + str(time.time() - start) + " seconds.")
 
-    logging.debug("Worker: " + str(workerID) + " dead. Worked for " + str(time.time() - start) + " seconds.")
+    #logging.debug("Worker: " + str(workerID) + " dead. Worked for " + str(time.time() - start) + " seconds.")
 
 
 
-darts = 40000 / PyDOOMS.getNumOfWorkers()
+darts = 400000 / PyDOOMS.getNumOfWorkers()
 
 PyDOOMS.execute(worker, darts)
 

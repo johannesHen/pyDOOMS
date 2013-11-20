@@ -1,4 +1,5 @@
 import logging
+from multiprocessing import Manager
 
 class ObjectStore(object):
     """
@@ -7,7 +8,7 @@ class ObjectStore(object):
     """
 
     def __init__(self):
-        self.objects = dict()
+        self.objects = Manager().dict()
 
     def addObject(self, object):
         """
