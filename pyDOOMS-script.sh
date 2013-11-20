@@ -32,19 +32,9 @@ commandStrNumberOfLoops=$(echo $2 - 1 | bc)
 
 if [ $2 -lt 2 ]
 then
-	commandStr="mpiexec -np 1 python multiprocess/tests/$file 0 1 $3"
+	commandStr="mpiexec -np 1 python multiprocess/tests/$file 1 $3"
 else	
-	commandStr="mpiexec -np 1 python multiprocess/tests/$file 0 $2 $3"
-fi
-
-if [ $2 -gt 1 ]
-then
-	for x in `seq 1 $commandStrNumberOfLoops`; 
-	do
-	tempCommandStr=": -np 1 python multiprocess/tests/$file $x $2 $3"
-	commandStr="$commandStr $tempCommandStr"
-	done
-	
+	commandStr="mpiexec -np $2 python multiprocess/tests/$file $2 $3"
 fi
 
 
