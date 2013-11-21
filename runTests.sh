@@ -17,6 +17,7 @@ echo $commandStr
 
 for i in `seq 1 $1`;
 do
+echo "Starting testrun $i"
 test1=$($commandStr)
 echo $test1
 
