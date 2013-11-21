@@ -49,7 +49,7 @@ def get(id):
             raise Exception('Object not found')
     except KeyError:
         time.sleep(0.0001)
-        logging.debug("No matching object found, trying again..." + str(_store.objects))
+        logging.debug("No matching object found, trying again...")
         return get(id)
 
 
@@ -118,7 +118,7 @@ def _reset():
     Reset the object store and communication thread states.
     Only used for testing
     """
-    _comm.reset()
+    _store.objects.clear()
 
 
 def getNodeID():
@@ -136,7 +136,7 @@ def getNumOfWorkers():
 
 
 
-
+nodeID = None
 numberOfNodes = eval(sys.argv[1])
 workersPerNode = eval(sys.argv[2])
 

@@ -59,19 +59,3 @@ class Communication(object):
         """
         #if (self.commThread.SHUTDOWN, None) not in self.sendQueue:
         self.sendQueue.put((self.commThread.SHUTDOWN, None))
-
-    def reset(self):
-        """
-        Restarts the commThread and clear the object store
-        """
-        self.commShutdown()
-
-        # Wait until thread is dead
-        while (self.commThread.isAlive()):
-            time.sleep(0.001)
-
-        self.objStore.objects.clear()
-
-        self.sendQueue = Queue()
-        self.commThread = CommThread.CommThread(self, self.workers, self.sendQueue, self.receivePipes)
-        self.commThread.start()
