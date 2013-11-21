@@ -112,6 +112,8 @@ def ReadLoopTest1(workerID):
     obj = PyDOOMS.get(1)
     oldValue = obj.value
 
+    PyDOOMS.barrier()
+
     if (workerID == 0):
         obj.value = 1
         PyDOOMS._store.addObject(obj)
@@ -129,7 +131,7 @@ def ReadLoopTest1(workerID):
 
 def ReadLoopTest2(workerID):
     """
-    Tests reading from multiple shard objects by doing a busy-wait for attribute change
+    Tests reading from multiple shard objects
     Changes are synchronized over several barriers
     """
 
@@ -144,10 +146,12 @@ def ReadLoopTest2(workerID):
     oldObj2Value = PyDOOMS.get(2).value
     oldObj3Value = PyDOOMS.get(3).value
 
+    PyDOOMS.barrier()
 
     if (workerID is not 0):
-        while (PyDOOMS.get(1).value == 0 or PyDOOMS.get(2).value == 0 or PyDOOMS.get(3).value == 0):
-            PyDOOMS.barrier()
+        PyDOOMS.barrier()
+        PyDOOMS.barrier()
+        PyDOOMS.barrier()
 
     elif (workerID == 0):
         obj1 = PyDOOMS.get(1)
@@ -179,7 +183,7 @@ def ReadLoopTest2(workerID):
 
 def ReadLoopTest3(workerID):
     """
-    Tests reading from multiple shard objects by doing a busy-wait for attribute change
+    Tests reading from multiple shard objects
     Changes are synchronized in one barrier
     """
 
@@ -194,10 +198,10 @@ def ReadLoopTest3(workerID):
     oldObj2Value = PyDOOMS.get(2).value
     oldObj3Value = PyDOOMS.get(3).value
 
+    PyDOOMS.barrier()
 
     if (workerID is not 0):
-        while (PyDOOMS.get(1).value == 0 or PyDOOMS.get(2).value == 0 or PyDOOMS.get(3).value == 0):
-            PyDOOMS.barrier()
+        PyDOOMS.barrier()
 
     elif (workerID == 0):
         obj1 = PyDOOMS.get(1)
@@ -234,6 +238,8 @@ def WriteLoopTest1(workerID):
     PyDOOMS.barrier()
 
     oldObjValue = PyDOOMS.get(1).value
+
+    PyDOOMS.barrier()
 
     for i in range(nodes):
         if (workerID == i):
@@ -272,7 +278,9 @@ def WriteLoopTest2(workerID):
     oldObj2Value = PyDOOMS.get(2).value
     oldObj3Value = PyDOOMS.get(3).value
 
-    while (PyDOOMS.get(workerID).value < threshold):
+    PyDOOMS.barrier()
+
+    while (PyDOOMS.get(workerID).value < threshold): # Doesnt work, since workers in the same node can read changes before barriers
         obj = PyDOOMS.get(workerID)
         obj.value += 1
         PyDOOMS._store.addObject(obj)
@@ -307,6 +315,8 @@ def WriteLoopTest3(workerID):
     oldObj1Value = PyDOOMS.get(1).value
     oldObj2Value = PyDOOMS.get(2).value
     oldObj3Value = PyDOOMS.get(3).value
+
+    PyDOOMS.barrier()
 
     for i in range(nodes):
         if (workerID == i):
@@ -350,6 +360,8 @@ def AttributeTest1(workerID):
 
     obj = PyDOOMS.get(1)
 
+    PyDOOMS.barrier()
+
     if (workerID == 0):
         obj.newAttr = 2
         PyDOOMS._comm.addOutgoingUpdate(obj.ID,"newAttr",obj.newAttr)
@@ -392,11 +404,13 @@ def BarrierTest(workerID):
 
     PyDOOMS.barrier()
     obj = PyDOOMS.get(workerID)
+    PyDOOMS.barrier()
 
     for i in range(loops):
         results.append(obj.value)
         obj.value += increment
 
+        PyDOOMS._store.addObject(obj)
         PyDOOMS._comm.addOutgoingUpdate(obj.ID,"value",obj.value)
         PyDOOMS.barrier()
 
@@ -420,6 +434,7 @@ def WorkerTest(workerID):
 
     PyDOOMS.barrier()
     obj = PyDOOMS.get(workerID)
+    PyDOOMS.barrier()
 
     obj.value = obj.value + 1
     PyDOOMS._store.addObject(obj)
@@ -476,9 +491,9 @@ def testSuite(workerID):
     #logging.debug("WriteLoopTest1 finished")
     reset()
 
-    WriteLoopTest2(workerID)
+    #WriteLoopTest2(workerID)
     #logging.debug("WriteLoopTest2 finished")
-    reset()
+    #reset()
 
     WriteLoopTest3(workerID)
     #logging.debug("WriteLoopTest3 finished")
