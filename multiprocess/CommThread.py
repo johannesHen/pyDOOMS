@@ -74,6 +74,7 @@ class CommThread(threading.Thread):
         Broadcast message update
         """
         #logging.debug("Process "+str(self.comm.rank) + " Sending update " + str(update))
+        self.communication.objStore.objects[update[0]].update(update[1], update[2]) # SyncManager.dict can only see changes in the dict, not changes in objects in the dict.
         self.broadcast(update, self.SEND_UPDATE)
 
 

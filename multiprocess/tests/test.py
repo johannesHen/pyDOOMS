@@ -117,7 +117,6 @@ def ReadLoopTest1(workerID):
 
     if (workerID == 0):
         obj.value = 1
-        PyDOOMS._store.addObject(obj)
         PyDOOMS._comm.addOutgoingUpdate(1, "value", obj.value)
 
     PyDOOMS.barrier()
@@ -157,19 +156,16 @@ def ReadLoopTest2(workerID):
     elif (workerID == 0):
         obj1 = PyDOOMS.get(1)
         obj1.value = obj1.value + 1
-        PyDOOMS._store.addObject(obj1)
         PyDOOMS._comm.addOutgoingUpdate(1,"value",1)
         PyDOOMS.barrier()
 
         obj2 = PyDOOMS.get(2)
         obj2.value = obj2.value + 1
-        PyDOOMS._store.addObject(obj2)
         PyDOOMS._comm.addOutgoingUpdate(2,"value",1)
         PyDOOMS.barrier()
 
         obj3 = PyDOOMS.get(3)
         obj3.value = obj3.value + 1
-        PyDOOMS._store.addObject(obj3)
         PyDOOMS._comm.addOutgoingUpdate(3,"value",1)
         PyDOOMS.barrier()
 
@@ -211,9 +207,6 @@ def ReadLoopTest3(workerID):
         obj1.value = obj1.value + 1
         obj2.value = obj2.value + 1
         obj3.value = obj3.value + 1
-        PyDOOMS._store.addObject(obj1)
-        PyDOOMS._store.addObject(obj2)
-        PyDOOMS._store.addObject(obj3)
         PyDOOMS._comm.addOutgoingUpdate(1,"value",1)
         PyDOOMS._comm.addOutgoingUpdate(2,"value",1)
         PyDOOMS._comm.addOutgoingUpdate(3,"value",1)
@@ -246,7 +239,6 @@ def WriteLoopTest1(workerID):
         if (workerID == i):
             obj = PyDOOMS.get(1)
             obj.value += 1
-            PyDOOMS._store.addObject(obj)
             PyDOOMS._comm.addOutgoingUpdate(1,"value",obj.value)
         PyDOOMS.barrier()
 
@@ -284,7 +276,6 @@ def WriteLoopTest2(workerID):
     while (PyDOOMS.get(workerID).value < threshold): # Doesnt work, since workers in the same node can read changes before barriers
         obj = PyDOOMS.get(workerID)
         obj.value += 1
-        PyDOOMS._store.addObject(obj)
         PyDOOMS._comm.addOutgoingUpdate(workerID,"value",obj.value)
         PyDOOMS.barrier()
 
@@ -333,10 +324,6 @@ def WriteLoopTest3(workerID):
             PyDOOMS._comm.addOutgoingUpdate(obj1.ID,"value",obj1.value)
             PyDOOMS._comm.addOutgoingUpdate(obj2.ID,"value",obj2.value)
             PyDOOMS._comm.addOutgoingUpdate(obj3.ID,"value",obj3.value)
-            PyDOOMS._store.addObject(obj0)
-            PyDOOMS._store.addObject(obj1)
-            PyDOOMS._store.addObject(obj2)
-            PyDOOMS._store.addObject(obj3)
         PyDOOMS.barrier()
 
     if not (oldObj0Value == 0 and oldObj1Value == 0 and oldObj2Value == 0 and oldObj3Value == 0 and
@@ -366,7 +353,6 @@ def AttributeTest1(workerID):
     if (workerID == 0):
         obj.newAttr = 2
         PyDOOMS._comm.addOutgoingUpdate(obj.ID,"newAttr",obj.newAttr)
-        PyDOOMS._store.addObject(obj)
 
     PyDOOMS.barrier()
 
@@ -400,7 +386,6 @@ def ObjectAttributeTest1(workerID):
         obj.objectAttr = TestObject2()
         obj.objectAttr.a = 2
         obj.objectAttr.b = 2
-        PyDOOMS._store.addObject(obj)
         PyDOOMS._comm.addOutgoingUpdate(1, "objectAttr", obj.objectAttr)
 
     PyDOOMS.barrier()
@@ -450,7 +435,6 @@ def BarrierTest(workerID):
         results.append(obj.value)
         obj.value += increment
 
-        PyDOOMS._store.addObject(obj)
         PyDOOMS._comm.addOutgoingUpdate(obj.ID,"value",obj.value)
         PyDOOMS.barrier()
 
@@ -477,7 +461,6 @@ def WorkerTest(workerID):
     PyDOOMS.barrier()
 
     obj.value = obj.value + 1
-    PyDOOMS._store.addObject(obj)
     PyDOOMS._comm.addOutgoingUpdate(obj.ID,"value",obj.value)
 
     PyDOOMS.barrier()
