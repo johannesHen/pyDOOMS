@@ -7,6 +7,7 @@ import logging
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import PyDOOMS
 from TestObject import TestObject
+from TestObject2 import TestObject2
 
 
 def printDict():
@@ -377,14 +378,53 @@ def AttributeTest1(workerID):
 
 
 
+def ObjectAttributeTest1(workerID):
+    """
+    Tests reading from a shared object before and after object value has been changed by another node.
+    The value being changed is a TestObject2 object
+    """
+
+    if (workerID == 0):
+        TestObject(1)
+
+    PyDOOMS.barrier()
+
+    obj = PyDOOMS.get(1)
+    oldObj = obj.objectAttr
+    oldObjA = oldObj.a
+    oldObjB = oldObj.b
+
+    PyDOOMS.barrier()
+
+    if (workerID == 0):
+        obj.objectAttr = TestObject2()
+        obj.objectAttr.a = 2
+        obj.objectAttr.b = 2
+        PyDOOMS._store.addObject(obj)
+        PyDOOMS._comm.addOutgoingUpdate(1, "objectAttr", obj.objectAttr)
+
+    PyDOOMS.barrier()
+    obj = PyDOOMS.get(1)
+
+    if not (isinstance(oldObj,TestObject2) and oldObjA == 0 and oldObjB == 1 and
+            isinstance(obj, TestObject) and isinstance(obj.objectAttr,TestObject2) and obj.objectAttr.a == 2 and obj.objectAttr.b == 2):
+        logging.critical("Worker " + str(workerID) + " Values are:"
+                         + str(oldObjA) + "," + str(oldObjB) + " "
+                         + str(PyDOOMS.get(1).objectAttr.a) + "," + str(obj.objectAttr.b))
+        raise Exception
+
+
+
 def ShutdownTest(workerID):
     """
     Test shutdown commands
     """
-    # Send several shutdown messages to commThread
+    # Send shutdown message to commThread
     PyDOOMS.shutdown()
 
-    # commThread should not be alive
+    # Wait for thread to shutdown with a timeout
+    PyDOOMS._comm.commThread.join(1)
+
     if (PyDOOMS._comm.commThread.isAlive()):
         logging.critical("isAlive(): " + str(PyDOOMS._comm.commThread.isAlive()))
         raise Exception
@@ -503,6 +543,8 @@ def testSuite(workerID):
     #logging.debug("AttributeTest1 finished")
     reset()
 
+    ObjectAttributeTest1(workerID)
+
     ShutdownTest(workerID)
     #logging.debug("ShutdownTest finished")
 
@@ -510,8 +552,8 @@ def testSuite(workerID):
 try:
     PyDOOMS.execute(testSuite)
 
-    if (PyDOOMS.getNodeID() == 0):
-        logging.info("All tests passed")
+    #if (PyDOOMS.getNodeID() == 0):
+        #logging.info("All tests passed")
 
 except Exception as e:
     logging.exception(e)
