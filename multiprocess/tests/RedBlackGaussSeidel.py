@@ -1,10 +1,9 @@
 """
-Gauss-Seidel implementation using PyDOOMS to share chunks of matrix rows and worker information
+Red-Black Gauss-Seidel implementation using PyDOOMS to share matrix rows and worker information
 """
 
 import sys, os, time, logging
 from random import *
-import pickle
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from WorkerInfo import WorkerInfo
 from MatrixRow import MatrixRow
@@ -34,9 +33,10 @@ def worker(workerID, matrixSize, tolerance):
 
 
     start = time.time()
-    for iteration in range(1): # while globalError <= tolerance:
+    for iteration in range(10): # or while globalError <= tolerance:
 
-        PyDOOMS.get(workerID).error = 0.0
+        workerInfo = PyDOOMS.get(workerID)
+        workerInfo.error = 0.0
 
         enum = dict(enumerate(['Red', 'Black']))
         for color in enum:
@@ -48,7 +48,6 @@ def worker(workerID, matrixSize, tolerance):
                 northRow = PyDOOMS.get(matrixOffset + row - 1)
                 centerRow = PyDOOMS.get(matrixOffset + row)
                 southRow = PyDOOMS.get(matrixOffset + row + 1)
-                workerInfo = PyDOOMS.get(workerID)
 
                 for column in range((color + row) % 2 + 1, matrixSize-1, 2):
                     newValue = 0.25 * (northRow.row[column] + southRow.row[column] +
@@ -60,13 +59,12 @@ def worker(workerID, matrixSize, tolerance):
 
                     centerRow.row[column] = newValue
 
-                PyDOOMS._comm.addOutgoingUpdate(workerInfo.ID, "error", workerInfo.error)
-                PyDOOMS._comm.addOutgoingUpdate(centerRow.ID, "row", centerRow.row)
+                PyDOOMS.objectUpdated(centerRow, "row")
 
-            #logging.debug("Barrier")
-            #printMatrixRows(matrixSize)
+            PyDOOMS.objectUpdated(workerInfo, "error")
+
+            #logging.debug("Worker: " + str(workerID) + " Barrier")
             PyDOOMS.barrier()
-
 
         if (workerID == numberOfWorkers - 1):
             globalError = 0.0
@@ -88,7 +86,7 @@ def generateSharedMatrixRows(matrixSize):
 
 def printMatrixRows(matrixSize):
     for row in range(matrixSize):
-        print PyDOOMS.get(matrixOffset + row).row
+        logging.debug(str(PyDOOMS.get(matrixOffset + row).row))
 
 
 matrixSize = 400
