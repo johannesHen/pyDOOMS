@@ -3,7 +3,6 @@ import threading
 import Queue
 import time
 import logging
-import sys
 
 
 class CommThread(threading.Thread):
@@ -48,7 +47,7 @@ class CommThread(threading.Thread):
         except the local node
         """
         for i in [x for x in range(self.size) if x != self.rank]:
-            #logging.debug("Rank " + str(self.rank) + " broadcast to " + str(i))
+            #logging.debug("Node " + str(self.rank) + " broadcasting " + str(msg) + " to " + str(i))
             self.comm.send(msg, i, tag)
 
 
@@ -65,6 +64,7 @@ class CommThread(threading.Thread):
         """
         #logging.debug("OutgoingUpdates: " + str(self.outgoingUpdates))
         for update in self.outgoingUpdates:
+            #logging.debug("Node " + str(self.rank) + " sending update")
             self.sendUpdate(update)
         self.outgoingUpdates = []
 
@@ -73,7 +73,7 @@ class CommThread(threading.Thread):
         """
         Broadcast message update
         """
-        #logging.debug("Process "+str(self.comm.rank) + " Sending update " + str(update))
+        #logging.debug("Node "+str(self.comm.rank) + " Sending update " + str(update))
         self.communication.objStore.objects[update[0]].update(update[1], update[2]) # SyncManager.dict can only see changes in the dict, not changes in objects in the dict.
         self.broadcast(update, self.SEND_UPDATE)
 
@@ -109,8 +109,6 @@ class CommThread(threading.Thread):
             self.communication.objStore.objects[id].update(attr,value)
         else:
             self.incomingUpdates.append((id, attr, value))
-            if (id,attr,value) in self.outgoingUpdates:
-                logging.debug("Process: " + str(self.rank) + " incoming and outgoing update for same message in cmd=OUTGOINGUPDATE")
 
 
     def processUpdates(self):
@@ -118,7 +116,7 @@ class CommThread(threading.Thread):
         Applies all updates in self.incomingUpdates to the corresponding objects
         """
         for upd in self.incomingUpdates:
-            #logging.debug("Process: " + str(self.rank) + " processing update: " + str(upd))
+            #logging.debug("Node: " + str(self.rank) + " processing update: " + str(upd))
             self.communication.objStore.objects[upd[0]].update(upd[1], upd[2])
         self.incomingUpdates = []
 
@@ -126,50 +124,52 @@ class CommThread(threading.Thread):
     def barrierStart(self):
         """
         Initialize barrier synchronization when all local workers has issued a request to start.
-        outgoing updates are merged before transmitted, and a broadcast is made to signal that all updates has been sent.
+        Outgoing updates are merged before transmitted, and a broadcast is made to signal that all updates has been sent.
         Finally, previously received updates are processed and the number of barrier acks received is checked
-        to see if MPI_barrier should be called.
+        to see if the barrier should finish.
         """
-        #logging.debug("Process "+str(self.comm.rank) + " Barrier request")
+        #logging.debug("Node "+str(self.comm.rank) + " Barrier request")
         self.barrierStartRequests += 1
 
         if self.barrierStartRequests == self.workers:
-            #logging.debug("Process "+str(self.comm.rank) + " Starting barrier")
+            #logging.debug("Node "+str(self.comm.rank) + " Starting barrier")
             self.barrierUp = True
             self.barrierAcks -= (self.size - 1)
             self.mergeUpdates()
-            #logging.debug("Process "+str(self.comm.rank) + " Sending outgoing updates")
+            #logging.debug("Node "+str(self.comm.rank) + " Sending outgoing updates")
             self.sendUpdates()
-            #logging.debug("Process "+str(self.comm.rank) + " Sending barrier ack")
+            #logging.debug("Node "+str(self.comm.rank) + " Sending barrier ack")
             self.broadcast(0, self.BARRIER_SENDS_DONE)
-            #logging.debug("Process "+str(self.comm.rank) + " Processing updates")
+            #logging.debug("Node "+str(self.comm.rank) + " Processing updates")
             self.processUpdates()
 
             """
             If the thread has already received barrier done messages from all other nodes
             it wont receive any more and the check for completion must be done here
             """
-            if (self.barrierAcks == self.size - 1):
-                self.barrierStartRequests -= self.workers
-                self.barrierUp = False
-                self.comm.barrier()
-                for i in range(self.workers):
-                    self.receivePipes[i][1].send(self.BARRIER_DONE)
+            self.barrierDoneCheck()
 
 
     def barrierAck(self):
         """
-        Increment the number of barrierAcks and if all remote nodes has sent a BARRIER_DONE message,
-        MPI_barrier is called and later a BARRIER_DONE message is sent to the workers,
-        to indicate that the barrier synchronization is done
+        Increment the number of barrierAcks received and do a check if the barrier should finish.
         """
         self.barrierAcks += 1
+        self.barrierDoneCheck()
+
+
+    def barrierDoneCheck(self):
+        """
+        Check if all remote nodes has sent a BARRIER_DONE message.
+        If True issue a MPI_barrier and exit the barrier by sending a BARRIER_DONE message to the local workers,
+        to indicate that the barrier synchronization is done
+        """
         if (self.barrierAcks == self.size - 1):
             self.barrierStartRequests -= self.workers
             self.barrierUp = False
             self.comm.barrier()
             for i in range(self.workers):
-                    self.receivePipes[i][1].send(self.BARRIER_DONE)
+                self.receivePipes[i][1].send(self.BARRIER_DONE)
 
 
     def run(self):
@@ -180,31 +180,28 @@ class CommThread(threading.Thread):
         when the sendQueue is empty, and when no message are sent or received the thread sleeps
         """
 
-        #logging.debug("Process " + str(self.rank) + " - New CommThread starting")
+        #logging.debug("Node " + str(self.rank) + " - New CommThread starting")
         while (self.running):
             try:
                 try:
                     (cmd, msg) = self.sendQueue.get(False)
 
                     if (cmd == self.SPREAD_OBJECT):
-                        #logging.debug("Process "+str(self.comm.rank) + " Spreading " + str(msg))
+                        #logging.debug("Node "+str(self.comm.rank) + " Spreading " + str(msg))
                         self.broadcast(msg, self.SPREAD_OBJECT)
 
                     elif (cmd == self.OUTGOING_UPDATE):
-                        #logging.debug("Process: " + str(self.rank) + " Adding outgoing update:" + str(msg))
+                        #logging.debug("Node: " + str(self.rank) + " Adding outgoing update:" + str(msg))
                         if (len(self.outgoingUpdates) >= self.outgoingUpdatesBufferSize):
                             self.sendUpdate(self.outgoingUpdates[0])
                             self.outgoingUpdates.pop(0)
                         self.outgoingUpdates.append(msg)
-                        if msg in self.incomingUpdates:
-                            logging.debug("Process: " + str(self.rank) + " incoming and outgoing update for same message in cmd=OUTGOINGUPDATE")
 
                     elif (cmd == self.BARRIER_START):
-                        #logging.debug("Process "+str(self.comm.rank) + " Starting barrier")
                         self.barrierStart()
 
                     elif (cmd == self.SHUTDOWN):
-                        #logging.debug("Shutting down")
+                        #logging.debug("Node: " + str(self.rank) + " Shutting down")
                         self.running = False
 
                 except Queue.Empty:
