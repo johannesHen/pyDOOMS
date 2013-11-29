@@ -49,9 +49,8 @@ def get(id):
             raise Exception('Object not found')
     except KeyError:
         time.sleep(0.0001)
-        logging.debug("No matching object found, trying again...")
+        #logging.debug("No matching object found, trying again...")
         return get(id)
-
 
 
 
@@ -87,6 +86,13 @@ def execute(worker, *workerArgs):
 
     # Shut down commThread and quit
     shutdown()
+
+
+def objectUpdated(obj, attr):
+    """
+    Adds the objects ID, attribute-name and value to an outgoing update
+    """
+    _comm.addOutgoingUpdate(obj.ID, attr, getattr(obj,attr))
 
 
 def barrier():

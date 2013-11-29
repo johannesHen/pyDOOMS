@@ -1,6 +1,5 @@
 """
 A basic monte-carlo implementation for calculating pi.
-Assumes the argument supplied to the nodes is the node ID, starting from 0
 
 Node 0 creates the shared objects and sums the result,
 all other nodes fetches the objects and each processes will work on one object each
@@ -36,9 +35,9 @@ def worker(workerID, myDarts):
         myDarts = myDarts - 1
     board.ready = True
 
-    PyDOOMS._comm.addOutgoingUpdate(board.ID, "hits", board.hits)
-    PyDOOMS._comm.addOutgoingUpdate(board.ID, "darts", board.darts)
-    PyDOOMS._comm.addOutgoingUpdate(board.ID, "ready", board.ready)
+    PyDOOMS.objectUpdated(board, "hits")
+    PyDOOMS.objectUpdated(board, "darts")
+    PyDOOMS.objectUpdated(board, "ready")
 
 
     PyDOOMS.barrier()
@@ -63,7 +62,7 @@ def worker(workerID, myDarts):
 
 
 
-darts = 4000000 / PyDOOMS.getNumOfWorkers()
+darts = 2000000 / PyDOOMS.getNumOfWorkers()
 
 PyDOOMS.execute(worker, darts)
 
