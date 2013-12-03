@@ -16,7 +16,7 @@ def worker(workerID, myDarts):
     start = time.time()
 
     if (workerID == 0):
-        for boardID in range(PyDOOMS.getNumOfWorkers()):
+        for boardID in range(PyDOOMS.getNumberOfWorkers()):
             Board(boardID)
 
     PyDOOMS.barrier()
@@ -46,7 +46,7 @@ def worker(workerID, myDarts):
     if (workerID == 0):
         pi = 0.0
         i = 0
-        while i < PyDOOMS.getNumOfWorkers():
+        while i < PyDOOMS.getNumberOfWorkers():
             b = PyDOOMS.get(i)
             if b.ready:
                 pi = pi + b.calc_pi()
@@ -55,14 +55,14 @@ def worker(workerID, myDarts):
                 logging.critical("Board: " + str(i) + " - " + str(b.ready))
                 time.sleep(1)
 
-        #logging.debug("Pi: " + str(pi / PyDOOMS.getNumOfWorkers()) + " calculated in " + str(time.time() - start) + " seconds.")
+        #logging.debug("Pi: " + str(pi / PyDOOMS.getNumberOfWorkers()) + " calculated in " + str(time.time() - start) + " seconds.")
         print str(time.time() - start)
 
     #logging.debug("Worker: " + str(workerID) + " dead. Worked for " + str(time.time() - start) + " seconds.")
 
 
 
-darts = 4000000 / PyDOOMS.getNumOfWorkers()
+darts = 4000000 / PyDOOMS.getNumberOfWorkers()
 
 PyDOOMS.execute(worker, darts)
 

@@ -15,7 +15,7 @@ import PyDOOMS
 
 def worker(workerID, matrixSize, tolerance):
     global numberOfWorkers, matrixOffset
-    numberOfWorkers = PyDOOMS.getNumOfWorkers()
+    numberOfWorkers = PyDOOMS.getNumberOfWorkers()
     matrixOffset = 100
 
     chunkSize = (matrixSize-2) / numberOfWorkers
