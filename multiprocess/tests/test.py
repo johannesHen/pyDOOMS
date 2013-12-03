@@ -27,7 +27,7 @@ def reset():
     Reset the testing environment.
     Barrier is needed to stop messages received from nodes already in the next test being removed
     """
-    PyDOOMS.barrier() #Since workers share object store all workers has to have finished a test before we can reset the environment
+    PyDOOMS.barrier() #Since local workers share objectStore all workers has to have finished a test before we can reset it
     PyDOOMS._reset()
     PyDOOMS.barrier()
 
@@ -61,6 +61,7 @@ def SpreadTest2(workerID):
     Tests creation and spreading of objects residing in several different processes
     All nodes should have all objects in their local object store
     """
+    nodes = PyDOOMS.getNumberOfNodes()
     objectsPerNode = 100
 
     for i in range(nodes):
@@ -225,6 +226,7 @@ def WriteLoopTest1(workerID):
     """
     Test all nodes writing and reading to/from a single shared object, one at a time
     """
+    nodes = PyDOOMS.getNumberOfNodes()
 
     if (workerID == 0):
         TestObject(1)
@@ -294,6 +296,7 @@ def WriteLoopTest3(workerID):
     """
     Test writing and reading to/from multiple shared object from each node
     """
+    nodes = PyDOOMS.getNumberOfNodes()
 
     if (workerID == 0):
         TestObject(0)
@@ -424,7 +427,7 @@ def BarrierTest(workerID):
     results = []
 
     if (workerID == 0):
-        for i in range(workersPerNode*nodes):
+        for i in range(PyDOOMS.getNumberOfWorkers()):
             TestObject(i)
 
     PyDOOMS.barrier()
@@ -453,7 +456,7 @@ def WorkerTest(workerID):
     """
 
     if (workerID == 0):
-        for i in range(workersPerNode*nodes):
+        for i in range(PyDOOMS.getNumberOfWorkers()):
             TestObject(i)
 
     PyDOOMS.barrier()
@@ -466,22 +469,15 @@ def WorkerTest(workerID):
     PyDOOMS.barrier()
 
     if (workerID == 0):
-        for i in range(workersPerNode*nodes):
+        for i in range(PyDOOMS.getNumberOfWorkers()):
             if PyDOOMS.get(i).value != 1:
                 logging.debug("Worker " + str(workerID) + ", object " + str(i) + " has value " + str(PyDOOMS.get(i).value))
                 raise Exception
 
 
 
-# ARGUMENTS
-nodes = eval(sys.argv[1])
-workersPerNode = eval(sys.argv[2])
-
-
 
 def testSuite(workerID):
-    #logging.debug("Worker: " + str(workerID) + " starting")
-
     BarrierTest(workerID)
     #logging.debug("BarrierTest finished")
     reset()
@@ -535,8 +531,8 @@ def testSuite(workerID):
 try:
     PyDOOMS.execute(testSuite)
 
-    #if (PyDOOMS.getNodeID() == 0):
-        #logging.info("All tests passed")
+    if (PyDOOMS.getNodeID() == 0):
+        logging.info("All tests passed")
 
 except Exception as e:
     logging.exception(e)
