@@ -2,12 +2,13 @@
 A basic monte-carlo implementation for calculating pi.
 
 Node 0 creates the shared objects and sums the result,
-all other nodes fetches the objects and each processes will work on one object each
+all other nodes fetches the objects and each worker will work on one object each
 """
 
 import random, math, sys, os, time, logging
+from multiprocess.Benchmarks import Board
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from Board import Board
 import PyDOOMS
 
 
@@ -62,7 +63,7 @@ def worker(workerID, myDarts):
 
 
 
-darts = 2000000 / PyDOOMS.getNumOfWorkers()
+darts = 4000000 / PyDOOMS.getNumOfWorkers()
 
 PyDOOMS.execute(worker, darts)
 

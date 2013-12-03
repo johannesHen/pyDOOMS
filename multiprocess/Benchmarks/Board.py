@@ -2,7 +2,7 @@ from PyDOOMS import SharedObject
 
 class Board(SharedObject):
     """
-    Class representing a board in the monte-carlo algorithm
+    Class representing a board in the monte-carlo benchmark
     """
 
     def __init__(self, ID):
