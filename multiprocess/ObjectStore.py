@@ -16,10 +16,3 @@ class ObjectStore(object):
         """
         #logging.debug("object" + str(object.ID) + " added to dict")
         self.objects[object.ID] = object
-
-    def setDictionary(self, dict):
-        """
-        Used for multiprocessing purposes
-        """
-        #logging.debug("dict changed")
-        self.objects = dict
