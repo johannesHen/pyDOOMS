@@ -32,6 +32,8 @@ class SharedObject(object):
         """
         Sets an attribute in this object to the new value
         Called when receiving updates from other nodes
+        The updated object is added to the object store so that the SyncManager
+        can see the changes and spread them to other local workers.
         """
         self.__dict__[name] = value
         _store.addObject(self)
