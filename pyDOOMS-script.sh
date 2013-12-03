@@ -25,7 +25,7 @@ while getopts "vf:" opt; do
 done
 
 shift $(($OPTIND - 1))
-echo "Looping monte_carlo.py $1 times with $2 nodes and $3 workers per node"
+echo "Looping $file $1 times with $2 nodes and $3 workers per node"
 
 
 commandStrNumberOfLoops=$(echo $2 - 1 | bc)
