@@ -2,15 +2,12 @@
 Gauss-Seidel implementation using PyDOOMS to share chunks of matrix rows and worker information
 """
 
-import sys
-import os
-import time
-import logging
+import sys, os, time, logging
 from random import *
 
-from multiprocess.Benchmarks import RowChunk, WorkerInfo
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from RowChunk import RowChunk
+from WorkerInfo import WorkerInfo
 import PyDOOMS
 
 def worker(workerID, matrixSize, tolerance):
