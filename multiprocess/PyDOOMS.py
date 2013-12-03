@@ -131,12 +131,19 @@ def _reset():
 
 def getNodeID():
     """
-    Return the ID of this node. Set at startup with command line argument
+    Return the ID of this node. The same as the MPI rank for this node
     """
     return nodeID
 
 
-def getNumOfWorkers():
+def getNumberOfNodes():
+    """
+    Return number of nodes running pyDOOMS in the network. Set at startup with command line argument
+    """
+    return numberOfNodes
+
+
+def getNumberOfWorkers():
     """
     The total number of workers in the cluster
     """
