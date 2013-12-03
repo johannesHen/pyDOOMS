@@ -6,9 +6,8 @@ all other nodes fetches the objects and each worker will work on one object each
 """
 
 import random, math, sys, os, time, logging
-from multiprocess.Benchmarks import Board
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from Board import Board
 import PyDOOMS
 
 
