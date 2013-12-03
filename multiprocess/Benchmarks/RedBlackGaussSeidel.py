@@ -2,15 +2,12 @@
 Red-Black Gauss-Seidel implementation using PyDOOMS to share matrix rows and worker information
 """
 
-import sys
-import os
-import time
-import logging
+import sys, os, time, logging
 from random import *
 
-from multiprocess.Benchmarks import MatrixRow, WorkerInfo
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from WorkerInfo import WorkerInfo
+from MatrixRow import MatrixRow
 import PyDOOMS
 
 def worker(workerID, matrixSize, tolerance):
@@ -37,7 +34,6 @@ def worker(workerID, matrixSize, tolerance):
 
 
     start = time.time()
-    barrierTime = 0.0
     for iteration in range(1): # or while globalError <= tolerance:
 
         workerInfo = PyDOOMS.get(workerID)
@@ -69,9 +65,7 @@ def worker(workerID, matrixSize, tolerance):
             PyDOOMS.objectUpdated(workerInfo, "error")
 
             #logging.debug("Worker: " + str(workerID) + " Barrier")
-            barrierStart = time.time()
             PyDOOMS.barrier()
-            barrierTime += time.time() - barrierStart
 
         if (workerID == numberOfWorkers - 1):
             globalError = 0.0
@@ -79,10 +73,10 @@ def worker(workerID, matrixSize, tolerance):
             for w in range(numberOfWorkers):
                 globalError += PyDOOMS.get(w).error
 
-            logging.debug("GlobalError: " + str(globalError) + " Barriertime: " + str(barrierTime))
+            logging.debug("GlobalError: " + str(globalError))
 
 
-    logging.debug("Worker: " + str(workerID) + " done in " + str(time.time() - start) + " seconds. Barriertime average: " + str(barrierTime/20))
+    logging.debug("Worker: " + str(workerID) + " done in " + str(time.time() - start) + " seconds")
 
 
 
@@ -96,6 +90,6 @@ def printMatrixRows(matrixSize):
         logging.debug(str(PyDOOMS.get(matrixOffset + row).row))
 
 
-matrixSize = 3002
+matrixSize = 1002
 
 PyDOOMS.execute(worker, matrixSize, 1)
