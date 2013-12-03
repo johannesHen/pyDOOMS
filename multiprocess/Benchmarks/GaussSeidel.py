@@ -38,7 +38,8 @@ def worker(workerID, matrixSize, tolerance):
     start = time.time()
     for iteration in range(1): # while globalError <= tolerance:
 
-        PyDOOMS.get(workerID).error = 0.0
+        workerInfo = PyDOOMS.get(workerID)
+        workerInfo.error = 0.0
 
         for row in range(1,matrixSize-1):
             if (workerID != 0):
@@ -57,7 +58,6 @@ def worker(workerID, matrixSize, tolerance):
             eastChunk = PyDOOMS.get(getChunkRowIndex(row,workerChunk+1))
             southChunk = PyDOOMS.get(getChunkRowIndex(row+1,workerChunk))
             centerChunk = PyDOOMS.get(getChunkRowIndex(row,workerChunk))
-            workerInfo = PyDOOMS.get(workerID)
 
             if chunkSize == 1:
                 for column in range(len(centerChunk.rowChunk)):
@@ -95,7 +95,6 @@ def worker(workerID, matrixSize, tolerance):
             PyDOOMS._comm.addOutgoingUpdate(workerInfo.ID, "error", workerInfo.error)
             PyDOOMS._comm.addOutgoingUpdate(centerChunk.ID, "rowChunk", centerChunk.rowChunk)
             #logging.debug("Worker: " + str(workerID) + " Done with row: " + str(row))
-            print "Barrier"
             PyDOOMS.barrier()
 
 
