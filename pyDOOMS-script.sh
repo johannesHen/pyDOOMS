@@ -3,7 +3,7 @@ MONTY=""
 TEST=""
 totaltime=0
 verbose=false
-file="monte_carlo_proc.py"
+file="monte_carlo.py"
 
 while getopts "vf:" opt; do
   case $opt in
@@ -25,16 +25,16 @@ while getopts "vf:" opt; do
 done
 
 shift $(($OPTIND - 1))
-echo "Looping monte_carlo_proc.py $1 times with $2 nodes and $3 workers per node"
+echo "Looping monte_carlo.py $1 times with $2 nodes and $3 workers per node"
 
 
 commandStrNumberOfLoops=$(echo $2 - 1 | bc)
 
 if [ $2 -lt 2 ]
 then
-	commandStr="mpiexec -np 1 python multiprocess/tests/$file 1 $3"
+	commandStr="mpiexec -np 1 python multiprocess/Benchmarks/$file 1 $3"
 else	
-	commandStr="mpiexec -np $2 python multiprocess/tests/$file $2 $3"
+	commandStr="mpiexec -np $2 python multiprocess/Benchmarks/$file $2 $3"
 fi
 
 
@@ -43,7 +43,6 @@ echo $commandStr
 for i in `seq 1 $1`;
 do
 test1=$($commandStr)
-#test1=$(mpiexec -np 1 python 0.0/tests/monte_carlo.py 0 : -np 1 python 0.0/tests/monte_carlo.py 1 : -np 1 python 0.0/tests/monte_carlo.py 2 : -np 1 python 0.0/tests/monte_carlo.py 3)
 echo $test1
 
 totaltime=$(echo $totaltime + $test1 | bc)
