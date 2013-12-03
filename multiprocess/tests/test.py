@@ -73,7 +73,7 @@ def SpreadTest2(workerID):
     # The python dictionary appears to do non-blocking non-immediate inserts into the object store dict.
     # Our PyDOOMS.get() function will wait for inserts to be made, but when checking the length of the dict
     # we must first wait for all inserts to complete
-    time.sleep(0.01)
+    time.sleep(0.02)
 
     if (len(PyDOOMS._store.objects) != objectsPerNode*nodes):
         logging.critical("Worker " + str(workerID) + " Number of objects:" + str(len(PyDOOMS._store.objects)))
