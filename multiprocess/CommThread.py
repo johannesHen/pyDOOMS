@@ -39,6 +39,7 @@ class CommThread(threading.Thread):
         self.running = True
         self.workers = workers
         self.barrierStartRequests = 0
+        self.currentSend = None
 
 
     def broadcast(self, msg, tag):
@@ -71,11 +72,22 @@ class CommThread(threading.Thread):
 
     def sendUpdate(self, update):
         """
-        Broadcast message update
+        Broadcast an update. An update is a 3-tuple of (objectID, attrName, attrValue).
+        If a previous send is incomplete, attempt to receive an update to prevent deadlocks while waiting.
+        Also updates the object in the local object store with the new value.
         """
         #logging.debug("Node "+str(self.comm.rank) + " Sending update " + str(update))
-        self.communication.objStore.objects[update[0]].update(update[1], update[2]) # SyncManager.dict can only see changes in the dict, not changes in objects in the dict.
-        self.broadcast(update, self.SEND_UPDATE)
+        self.communication.objStore.objects[update[0]].update(update[1], update[2])
+        for i in [x for x in range(self.size) if x != self.rank]:
+            #logging.debug("Node " + str(self.rank) + " broadcasting update")
+            if self.currentSend is not None:
+                while (not self.currentSend.Test()):
+                    #logging.debug("Node " + str(self.rank) + " previous send not received, receiving updates instead")
+                    if (self.comm.Iprobe(MPI.ANY_SOURCE, self.SEND_UPDATE)):
+                        msg = self.comm.recv(source=MPI.ANY_SOURCE, tag=self.SEND_UPDATE)
+                        self.receiveUpdate(*msg)
+                    time.sleep(0.000001)
+            self.currentSend = self.comm.isend(update, i, self.SEND_UPDATE)
 
 
     def mergeUpdates(self):
