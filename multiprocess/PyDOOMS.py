@@ -2,14 +2,30 @@
 Module providing the PyDOOMS API as well as the superclass for all shared objects when using PyDOOMS
 """
 
-import sys
+import sys, os
+from datetime import datetime
 from ObjectStore import *
 from Communication import *
 from multiprocessing import Process, Manager
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s,%(msecs)d (%(threadName)-2s) %(message)s',datefmt='%M:%S'
-                   )
+
+# Setup logging
+path = os.path.abspath(os.path.dirname(__file__))
+logDir = os.path.join(path,'logs')
+
+if not os.path.exists(logDir):
+    try:
+        os.makedirs(logDir)
+    except OSError:
+        pass
+        # If several nodes run on the same system
+        # only one will successfully create a directory
+
+logging.basicConfig(filename=logDir + '/' + str(sys.argv[0][:-3]) + "_" + str(datetime.now())+ '.log',
+                    level=logging.DEBUG,
+                    format='%(asctime)s,%(msecs)d (%(threadName)-2s) %(message)s',
+                    datefmt='%M:%S')
+
 
 class SharedObject(object):
     """
