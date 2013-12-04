@@ -39,6 +39,20 @@ class SharedObject(object):
         _store.addObject(self)
 
 
+
+class SharedObjectError(Exception):
+    """
+    PyDOOMS exception for shared objects
+    """
+
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+
+
 def get(id):
     """
     Returns the object with id id from the object store if it can be found
@@ -48,11 +62,13 @@ def get(id):
         if (obj is not None):
             return obj
         else:
-            raise Exception('Object not found')
+            raise SharedObjectError('Shared object with ID: ' + str(id) + ' is None')
     except KeyError:
         time.sleep(0.0001)
-        #logging.debug("No matching object found, trying again...")
-        return get(id)
+        try:
+            return get(id)
+        except RuntimeError:
+            raise SharedObjectError('No shared object with ID: ' + str(id) + ' found')
 
 
 
@@ -131,7 +147,8 @@ def _reset():
 
 def getNodeID():
     """
-    Return the ID of this node. The same as the MPI rank for this node
+    Return the ID of this node. The same as the MPI rank for this node.
+    Returns None if called before PyDOOMS.execute() since the MPI communication has not yet been initialized
     """
     return nodeID
 
