@@ -2,7 +2,7 @@
 Module providing the PyDOOMS API as well as the superclass for all shared objects when using PyDOOMS
 """
 
-import sys, os
+import sys, os, time
 from datetime import datetime
 from ObjectStore import *
 from Communication import *
