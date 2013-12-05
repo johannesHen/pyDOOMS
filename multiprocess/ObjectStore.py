@@ -3,7 +3,8 @@ from multiprocessing import Manager
 
 class ObjectStore(object):
     """
-    Class containing a dictionary of all shared objects and methods to manipulate it.
+    Class containing a SyncManager dictionary of all shared objects.
+    The SyncManager dictionary will be shared among all workers in a node.
     Objects are indexed by their IDs.
     """
 

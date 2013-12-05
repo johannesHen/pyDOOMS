@@ -19,7 +19,8 @@ if not os.path.exists(logDir):
     except OSError:
         pass
         # If several nodes run on the same system
-        # only one will successfully create a directory
+        # only one will successfully create a directory,
+        # the rest will raise OSError
 
 logging.basicConfig(filename=logDir + '/' + str(sys.argv[0][:-3]) + "_" + str(datetime.now())+ '.log',
                     level=logging.DEBUG,
@@ -90,7 +91,7 @@ def get(id):
 
 def execute(worker, *workerArgs):
     """
-    Make the object store dictionary shared between processes, spawn worker processes,
+    Initialize the local object store shared between processes, spawn worker processes,
     and shut down the mpi communication when all workers are done
     """
 
@@ -136,29 +137,11 @@ def barrier():
     _comm.commBarrier()
 
 
-def _start(worker, workerArgs, p):
-    """
-    Sets the provided pipe as the pipe to use for receiving messages from the CommThread,
-    and starts the worker
-    """
-    _comm.receivePipe = p
-
-    worker(*workerArgs)
-
-
 def shutdown():
     """
     Gracefully shuts down the communicating MPI thread
     """
     _comm.commShutdown()
-
-
-def _reset():
-    """
-    Reset the object store and communication thread states.
-    Only used for testing
-    """
-    _store.objects.clear()
 
 
 def getNodeID():
@@ -178,10 +161,27 @@ def getNumberOfNodes():
 
 def getNumberOfWorkers():
     """
-    The total number of workers in the cluster
+    The total number of workers in the cluster. workersPerNode is set at startup with command line argument
     """
     return numberOfNodes*workersPerNode
 
+
+def _start(worker, workerArgs, p):
+    """
+    Set pipe p as the pipe to use in this worker process for receiving messages from the CommThread,
+    and starts executing the worker function
+    """
+    _comm.receivePipe = p
+
+    worker(*workerArgs)
+
+
+def _reset():
+    """
+    Reset the object store.
+    Only used for testing
+    """
+    _store.objects.clear()
 
 
 nodeID = None

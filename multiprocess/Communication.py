@@ -1,4 +1,3 @@
-import time
 import logging
 from multiprocessing import Queue, Pipe
 import CommThread
@@ -11,8 +10,8 @@ class Communication(object):
 
     def __init__(self, store, workers):
         """
-        Start the communicating (MPI) thread and initialize one queue for messages to the CommThread
-        and one pipe for each worker to receive messages from the CommThread.
+        Start the communicating (MPI) thread and initialize one queue for messages sent to the CommThread
+        and one pipe for each worker process to receive messages from the CommThread.
         """
         self.objStore = store
         self.sendQueue = Queue()

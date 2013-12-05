@@ -10,6 +10,7 @@ class CommThread(threading.Thread):
     Thread handling all inter-node communication using MPI
     Intra-node communication is done using Queues.
     Also stores incoming and outgoing updates in lists of tuples on the form [(objectID, attr, value)]
+    and merges updates before sending them.
     """
 
     SPREAD_OBJECT = 0
@@ -24,21 +25,29 @@ class CommThread(threading.Thread):
     size = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
 
+    # The number of updates to keep until the next barrier.
     outgoingUpdatesBufferSize = 10
 
 
     def __init__(self, comm, workers, sQueue, rPipes):
+        """
+        Initialize the thread and setup local variables
+        """
         threading.Thread.__init__(self)
+        self.running = True
+
         self.outgoingUpdates = []
         self.incomingUpdates = []
+
         self.communication = comm
         self.sendQueue = sQueue
         self.receivePipes = rPipes
+        self.workers = workers
+
         self.barrierUp = False
         self.barrierAcks = self.size - 1
-        self.running = True
-        self.workers = workers
         self.barrierStartRequests = 0
+
         self.currentSend = None
 
 
@@ -54,14 +63,14 @@ class CommThread(threading.Thread):
 
     def receiveObject(self, obj):
         """
-        Adds the object obj to the object store in the local node
+        Adds the object obj to the local object store
         """
         self.communication.objStore.addObject(obj)
 
 
     def sendUpdates(self):
         """
-        Broadcasts all updates in self.outgoingUpdates and then clears self.outgoingUpdates
+        Broadcasts and removes all updates in self.outgoingUpdates
         """
         #logging.debug("OutgoingUpdates: " + str(self.outgoingUpdates))
         for update in self.outgoingUpdates:
@@ -72,21 +81,25 @@ class CommThread(threading.Thread):
 
     def sendUpdate(self, update):
         """
-        Broadcast an update. An update is a 3-tuple of (objectID, attrName, attrValue).
-        If a previous send is incomplete, attempt to receive an update to prevent deadlocks while waiting.
-        Also updates the object in the local object store with the new value.
+        Broadcasts an update. An update is a 3-tuple of (objectID, attrName, attrValue).
+        If a previously sent update has not been received,
+        attempts to receive an incoming update to prevent deadlock while waiting.
+        Also updates the object in the local object store with the updated value.
         """
         #logging.debug("Node "+str(self.comm.rank) + " Sending update " + str(update))
         self.communication.objStore.objects[update[0]].update(update[1], update[2])
+
         for i in [x for x in range(self.size) if x != self.rank]:
             #logging.debug("Node " + str(self.rank) + " broadcasting update")
             if self.currentSend is not None:
+
                 while (not self.currentSend.Test()):
                     #logging.debug("Node " + str(self.rank) + " previous send not received, receiving updates instead")
                     if (self.comm.Iprobe(MPI.ANY_SOURCE, self.SEND_UPDATE)):
                         msg = self.comm.recv(source=MPI.ANY_SOURCE, tag=self.SEND_UPDATE)
                         self.receiveUpdate(*msg)
                     time.sleep(0.000001)
+
             self.currentSend = self.comm.isend(update, i, self.SEND_UPDATE)
 
 
@@ -113,7 +126,7 @@ class CommThread(threading.Thread):
 
     def receiveUpdate(self, id, attr, value):
         """
-        If in a barrier, this method updates the attribute attr to the new value value in the object with id id
+        If currently in a barrier, this method updates the attribute attr to the new value value in the object with id id
         Otherwise, the update is appended to the list of incoming updates to be handled later
         """
 
@@ -125,7 +138,7 @@ class CommThread(threading.Thread):
 
     def processUpdates(self):
         """
-        Applies all updates in self.incomingUpdates to the corresponding objects
+        Applies all updates in self.incomingUpdates to the corresponding objects in the local object store
         """
         for upd in self.incomingUpdates:
             #logging.debug("Node: " + str(self.rank) + " processing update: " + str(upd))
@@ -136,7 +149,8 @@ class CommThread(threading.Thread):
     def barrierStart(self):
         """
         Initialize barrier synchronization when all local workers has issued a request to start.
-        Outgoing updates are merged before transmitted, and a broadcast is made to signal that all updates has been sent.
+        Outgoing updates are merged before transmitted,
+        and a broadcast is made to signal that all updates has been sent from this node.
         Finally, previously received updates are processed and the number of barrier acks received is checked
         to see if the barrier should finish.
         """
@@ -172,9 +186,9 @@ class CommThread(threading.Thread):
 
     def barrierDoneCheck(self):
         """
-        Check if all remote nodes has sent a BARRIER_DONE message.
+        Check if all remote nodes in the MPI.COMM_WORLD communicator has sent a BARRIER_SENDS_DONE message.
         If True issue a MPI_barrier and exit the barrier by sending a BARRIER_DONE message to the local workers,
-        to indicate that the barrier synchronization is done
+        to indicate that the barrier synchronization is done.
         """
         if (self.barrierAcks == self.size - 1):
             self.barrierStartRequests -= self.workers
@@ -186,10 +200,10 @@ class CommThread(threading.Thread):
 
     def run(self):
         """
-        Method containing the thread's run loop used to send or otherwise handle messages received
-        from the sendQueue and to receive and handle messages from remote nodes.
-        Commands or messages from the sendQueue has top priority for handling, receives are handled
-        when the sendQueue is empty, and when no message are sent or received the thread sleeps
+        The thread's run loop. Used to send or otherwise handle messages received
+        from the local workers and to receive and handle messages from remote nodes.
+        Commands and messages from the local workers has top priority for handling, receives are handled
+        secondarily, and when no message are sent or received the thread sleeps.
         """
 
         #logging.debug("Node " + str(self.rank) + " - New CommThread starting")
