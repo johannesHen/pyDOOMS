@@ -10,21 +10,19 @@ from RowChunk import RowChunk
 from WorkerInfo import WorkerInfo
 import PyDOOMS
 
-def worker(workerID, matrixSize, tolerance):
+
+def gaussSeidel(workerID, matrixSize):
     global numberOfWorkers, matrixOffset
     numberOfWorkers = PyDOOMS.getNumberOfWorkers()
     matrixOffset = 100
 
     chunkSize = (matrixSize-2) / numberOfWorkers
-    numberOfChunks = (matrixSize * numberOfWorkers)
 
     if workerID == 0:
         if ((matrixSize - 2) % numberOfWorkers) != 0:
-            print "Matrix size is invalid, try another matrix size"
-            return
+            print "Warning: Matrix size incompatible with number of workers, some columns may not be calculated"
 
         matrix = generateMatrix(matrixSize)
-        #printMatrix(matrix)
 
         generateSharedRowChunks(matrix, chunkSize)
 
@@ -33,10 +31,10 @@ def worker(workerID, matrixSize, tolerance):
 
     PyDOOMS.barrier()
 
-    logging.debug("Worker: "  + str(workerID) + " assigned chunk " + str(workerID+1))
+    logging.info("Worker: "  + str(workerID) + " assigned chunk " + str(workerID+1))
 
     start = time.time()
-    for iteration in range(1): # while globalError <= tolerance:
+    for iteration in range(1):
 
         workerInfo = PyDOOMS.get(workerID)
         workerInfo.error = 0.0
@@ -44,12 +42,7 @@ def worker(workerID, matrixSize, tolerance):
         for row in range(1,matrixSize-1):
             if (workerID != 0):
                 while (PyDOOMS.get(workerID - 1).progress < row):
-                    #logging.debug("Worker: " + str(workerID) + " Waiting for previous worker")
                     PyDOOMS.barrier()
-                    #logging.debug("Worker: " + str(workerID) + " Done waiting")
-
-            #logging.debug("Worker: "  + str(workerID) + " Starting with row: " + str(row))
-
 
             workerChunk = workerID + 1
 
@@ -64,10 +57,7 @@ def worker(workerID, matrixSize, tolerance):
                     newValue = 0.25 * (northChunk.rowChunk[column] + southChunk.rowChunk[column] +
                                        eastChunk.rowChunk[column] + westChunk.rowChunk[column])
 
-                    #logging.debug("Worker:" + str(workerID) + str(" Element ") + str(row) + "," + str(column) + " in chunk " + str(getChunkRowIndex(row,workerChunk)) +  " calculated to " + str(newValue))
-                    #logging.debug("local error:" + str(abs(centerChunk.rowChunk[column] - newValue)))
                     workerInfo.error += abs(centerChunk.rowChunk[column] - newValue)
-
                     centerChunk.rowChunk[column] = newValue
 
             else:
@@ -84,17 +74,13 @@ def worker(workerID, matrixSize, tolerance):
                         newValue = 0.25 * (northChunk.rowChunk[column] + southChunk.rowChunk[column] +
                                            centerChunk.rowChunk[column-1] + centerChunk.rowChunk[column+1])
 
-                    #logging.debug("Worker:" + str(workerID) + str(" Element ") + str(row) + "," + str(column) + " in chunk " + str(getChunkRowIndex(row,workerChunk)) +  " calculated to " + str(newValue))
-                    #logging.debug("local error:" + str(abs(centerChunk.rowChunk[column] - newValue)))
                     workerInfo.error += abs(centerChunk.rowChunk[column] - newValue)
-
                     centerChunk.rowChunk[column] = newValue
 
             workerInfo.progress = row
-            PyDOOMS._comm.addOutgoingUpdate(workerInfo.ID, "progress", workerInfo.progress)
-            PyDOOMS._comm.addOutgoingUpdate(workerInfo.ID, "error", workerInfo.error)
-            PyDOOMS._comm.addOutgoingUpdate(centerChunk.ID, "rowChunk", centerChunk.rowChunk)
-            #logging.debug("Worker: " + str(workerID) + " Done with row: " + str(row))
+            PyDOOMS.objectUpdated(workerInfo, "progress")
+            PyDOOMS.objectUpdated(workerInfo, "error")
+            PyDOOMS.objectUpdated(centerChunk, "rowChunk")
             PyDOOMS.barrier()
 
 
@@ -109,12 +95,12 @@ def worker(workerID, matrixSize, tolerance):
             for w in range(numberOfWorkers):
                 globalError += PyDOOMS.get(w).error
 
-            logging.debug("GlobalError: " + str(globalError))
+            logging.info("GlobalError: " + str(globalError))
 
         for i in range(workerID,numberOfWorkers):
             PyDOOMS.barrier()
 
-    logging.debug("Worker: " + str(workerID) + " done in " + str(time.time() - start) + " seconds")
+    logging.info("Worker: " + str(workerID) + " done in " + str(time.time() - start) + " seconds")
 
 
 
@@ -133,13 +119,11 @@ def generateSharedRowChunks(matrix, chunkSize):
             leftmostChunk.append(None)
         leftmostChunk.append(firstColumn[0])
 
-        chunk = RowChunk(getChunkRowIndex(row,0), leftmostChunk)
-        #print "RowChunk " + str(chunk.ID) + str(chunk.rowChunk)
+        RowChunk(getChunkRowIndex(row,0), leftmostChunk)
 
         # Create regular chunks
         for i in range(0,numberOfWorkers):
-            chunk = RowChunk(getChunkRowIndex(row,i+1), matrix[row][i*chunkSize + 1:i*chunkSize+chunkSize+1])
-            #print "RowChunk " + str(chunk.ID) + str(chunk.rowChunk)
+            RowChunk(getChunkRowIndex(row,i+1), matrix[row][i*chunkSize + 1:i*chunkSize+chunkSize+1])
 
         # Last column has single element chunks
         lastColumn = matrix[row][matrixSize-1:matrixSize]
@@ -150,8 +134,7 @@ def generateSharedRowChunks(matrix, chunkSize):
         for e in range(chunkSize-1):
             rightmostChunk.append(None)
 
-        chunk = RowChunk(getChunkRowIndex(row,numberOfWorkers+1),rightmostChunk)
-        #print "RowChunk " + str(chunk.ID) + str(chunk.rowChunk)
+        RowChunk(getChunkRowIndex(row,numberOfWorkers+1),rightmostChunk)
 
 
 def generateMatrix(size):
@@ -167,4 +150,4 @@ def printMatrix(matrix):
 
 matrixSize = 1200
 
-PyDOOMS.execute(worker, matrixSize, 1)
+PyDOOMS.execute(gaussSeidel, matrixSize)

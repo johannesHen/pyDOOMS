@@ -10,4 +10,4 @@ class WorkerInfo(SharedObject):
         self.error = 0.0
         self.progress = 0
 
-        SharedObject.__init__(self, ID) # In a multiprocessed environment this must be done after initializing the variables
+        SharedObject.__init__(self, ID)

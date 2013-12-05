@@ -15,5 +15,4 @@ class ObjectStore(object):
         """
         Adds the object to the object store dictionary
         """
-        #logging.debug("object" + str(object.ID) + " added to dict")
         self.objects[object.ID] = object

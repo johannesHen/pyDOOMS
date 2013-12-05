@@ -7,4 +7,4 @@ class MatrixRow(SharedObject):
 
     def __init__(self, ID, row):
         self.row = row
-        SharedObject.__init__(self, ID) # In a multiprocessed environment this must be done after initializing the variables
+        SharedObject.__init__(self, ID)

@@ -10,7 +10,9 @@ from WorkerInfo import WorkerInfo
 from MatrixRow import MatrixRow
 import PyDOOMS
 
-def worker(workerID, matrixSize, tolerance):
+# Worker function
+def RedBlackGaussSeidel(workerID, matrixSize):
+
     global numberOfWorkers, matrixOffset
     numberOfWorkers = PyDOOMS.getNumberOfWorkers()
     matrixOffset = 100
@@ -19,10 +21,11 @@ def worker(workerID, matrixSize, tolerance):
 
     if workerID == 0:
         if ((matrixSize - 2) % numberOfWorkers) != 0:
-            print "Warning: Matrix size incompatible with number of workers, not all columns will be calculated"
+            print "Warning: Matrix size - 2 is not divisible with number of workers, some columns may not be calculated"
 
+        start = time.time()
         generateSharedMatrixRows(matrixSize)
-        #printMatrixRows(matrixSize)
+        logging.info("Time to generate shared matrix rows: " + str(time.time()-start))
 
         for w in range(numberOfWorkers):
             WorkerInfo(w)
@@ -30,11 +33,11 @@ def worker(workerID, matrixSize, tolerance):
 
     PyDOOMS.barrier()
 
-    logging.debug("Worker: " + str(workerID) + " assigned rows " + str(workerID*chunkSize+1) + "-" + str(workerID*chunkSize + chunkSize + 1))
+    logging.info("Worker: " + str(workerID) + " assigned rows " + str(workerID*chunkSize+1) + "-" + str(workerID*chunkSize + chunkSize + 1))
 
 
     start = time.time()
-    for iteration in range(1): # or while globalError <= tolerance:
+    for iteration in range(5):
 
         workerInfo = PyDOOMS.get(workerID)
         workerInfo.error = 0.0
@@ -44,8 +47,6 @@ def worker(workerID, matrixSize, tolerance):
 
             for row in range(workerID*chunkSize + 1,workerID*chunkSize + chunkSize + 1):
 
-                #logging.debug("Worker: "  + str(workerID) + " Starting with row: " + str(row))
-
                 northRow = PyDOOMS.get(matrixOffset + row - 1)
                 centerRow = PyDOOMS.get(matrixOffset + row)
                 southRow = PyDOOMS.get(matrixOffset + row + 1)
@@ -54,17 +55,12 @@ def worker(workerID, matrixSize, tolerance):
                     newValue = 0.25 * (northRow.row[column] + southRow.row[column] +
                                        centerRow.row[column-1] + centerRow.row[column+1])
 
-                    #logging.debug("Worker:" + str(workerID) + str(" Element ") + str(row) + "," + str(column) + " calculated to " + str(newValue))
-                    #logging.debug("local error:" + str(abs(centerRow.row[column] - newValue)))
                     workerInfo.error += abs(centerRow.row[column] - newValue)
-
                     centerRow.row[column] = newValue
 
                 PyDOOMS.objectUpdated(centerRow, "row")
 
             PyDOOMS.objectUpdated(workerInfo, "error")
-
-            #logging.debug("Worker: " + str(workerID) + " Barrier")
             PyDOOMS.barrier()
 
         if (workerID == numberOfWorkers - 1):
@@ -73,17 +69,15 @@ def worker(workerID, matrixSize, tolerance):
             for w in range(numberOfWorkers):
                 globalError += PyDOOMS.get(w).error
 
-            logging.debug("GlobalError: " + str(globalError))
+            logging.info("Iteration " + str(iteration+1) + " global error = " + str(globalError))
 
-
-    logging.debug("Worker: " + str(workerID) + " done in " + str(time.time() - start) + " seconds")
+    logging.info("Worker: " + str(workerID) + " done in " + str(time.time() - start) + " seconds")
 
 
 
 def generateSharedMatrixRows(matrixSize):
     for row in range(matrixOffset,matrixOffset + matrixSize):
         MatrixRow(row, [float(randrange(0,10)) for e in range(matrixSize)])
-
 
 def printMatrixRows(matrixSize):
     for row in range(matrixSize):
@@ -92,4 +86,4 @@ def printMatrixRows(matrixSize):
 
 matrixSize = 1002
 
-PyDOOMS.execute(worker, matrixSize, 1)
+PyDOOMS.execute(RedBlackGaussSeidel, matrixSize)

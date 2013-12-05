@@ -12,14 +12,15 @@ import PyDOOMS
 
 
 # Worker function
-def worker(workerID, myDarts):
-    start = time.time()
+def monteCarlo(workerID, myDarts):
 
     if (workerID == 0):
         for boardID in range(PyDOOMS.getNumberOfWorkers()):
             Board(boardID)
 
     PyDOOMS.barrier()
+
+    start = time.time()
     board = PyDOOMS.get(workerID)
 
     # Compute
@@ -55,14 +56,13 @@ def worker(workerID, myDarts):
                 logging.critical("Board: " + str(i) + " - " + str(b.ready))
                 time.sleep(1)
 
-        #logging.debug("Pi: " + str(pi / PyDOOMS.getNumberOfWorkers()) + " calculated in " + str(time.time() - start) + " seconds.")
-        print str(time.time() - start)
+        logging.info("Pi: " + str(pi / PyDOOMS.getNumberOfWorkers()) + " calculated in " + str(time.time() - start) + " seconds.")
 
-    #logging.debug("Worker: " + str(workerID) + " dead. Worked for " + str(time.time() - start) + " seconds.")
+    logging.info("Worker: " + str(workerID) + " dead. Worked for " + str(time.time() - start) + " seconds.")
 
 
 
 darts = 4000000 / PyDOOMS.getNumberOfWorkers()
 
-PyDOOMS.execute(worker, darts)
+PyDOOMS.execute(monteCarlo, darts)
 

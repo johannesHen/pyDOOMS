@@ -9,7 +9,7 @@ class Board(SharedObject):
         self.hits = 0
         self.darts = 0
         self.ready = False
-        SharedObject.__init__(self, ID) # In a multiprocessed environment this must be done after initializing the variables
+        SharedObject.__init__(self, ID)
 
     def hit(self):
         self.hits = self.hits + 1
