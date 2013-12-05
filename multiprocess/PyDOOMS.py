@@ -74,18 +74,18 @@ def get(id):
     """
     Returns the object with id id from the object store if it can be found
     """
-    try:
-        obj = _store.objects[id]
-        if (obj is not None):
-            return obj
-        else:
-            raise SharedObjectError('Shared object with ID: ' + str(id) + ' is None')
-    except KeyError:
-        time.sleep(0.0001)
+
+    for i in range(10000):
         try:
-            return get(id)
-        except RuntimeError:
-            raise SharedObjectError('No shared object with ID: ' + str(id) + ' found')
+            obj = _store.objects[id]
+            if (obj is not None):
+                return obj
+            else:
+                raise SharedObjectError('Shared object with ID: ' + str(id) + ' is None')
+        except KeyError:
+            time.sleep(0.0001)
+
+    raise SharedObjectError('No shared object with ID: ' + str(id) + ' found')
 
 
 
