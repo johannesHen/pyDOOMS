@@ -37,7 +37,7 @@ def RedBlackGaussSeidel(workerID, matrixSize):
 
 
     start = time.time()
-    for iteration in range(5):
+    for iteration in range(1):
 
         workerInfo = PyDOOMS.get(workerID)
         workerInfo.error = 0.0
