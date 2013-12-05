@@ -12,30 +12,31 @@ from TestObject2 import TestObject2
 
 def printDict():
     """
-    Prints the contents of the object store in a node.
+    Prints the contents of the local object store.
     """
     objects = PyDOOMS._store.objects.copy()
-    print "-------------------------------------Node: ",PyDOOMS.getNodeID()," --------------------------------------------"
+    logging.debug("-------------------------------------Node: " + str(PyDOOMS.getNodeID()) + " --------------------------------------------")
     for element in objects:
         if (isinstance(objects[element],TestObject)):
-            print element,"  -  ", objects[element]
+            logging.debug(str(element) + "  -  " + str(objects[element]))
 
 
 
 def reset():
     """
     Reset the testing environment.
-    Barrier is needed to stop messages received from nodes already in the next test being removed
+    Barriers are needed to stop workers from resetting the object store
+    while other workers are running a test.
     """
-    PyDOOMS.barrier() #Since local workers share objectStore all workers has to have finished a test before we can reset it
+    PyDOOMS.barrier()
     PyDOOMS._reset()
     PyDOOMS.barrier()
 
 
 def SpreadTest1(workerID):
     """
-    Tests creation and spreading of objects residing in node 0
-    All nodes should have all objects in their local object store
+    Tests creation and spreading of objects created in node 0
+    All nodes should have all objects in their local object store at the end of the test
     """
     numOfObj = 500
 
@@ -44,10 +45,10 @@ def SpreadTest1(workerID):
             TestObject(i)
 
     PyDOOMS.barrier()
-    # The python dictionary appears to do non-blocking non-immediate inserts into the object store dict.
+    # The python dictionary appears to do non-blocking inserts into the object store dict.
     # Our PyDOOMS.get() function will wait for inserts to be made, but when checking the length of the dict
     # (which should not be done outside perhaps testing) we must first wait for all inserts to complete
-    time.sleep(0.01)
+    time.sleep(0.02)
 
     if (len(PyDOOMS._store.objects) != numOfObj):
         logging.critical("Worker " + str(workerID) + " Number of objects:" + str(len(PyDOOMS._store.objects)))
@@ -58,8 +59,8 @@ def SpreadTest1(workerID):
 
 def SpreadTest2(workerID):
     """
-    Tests creation and spreading of objects residing in several different processes
-    All nodes should have all objects in their local object store
+    Tests creation and spreading of objects created in several different nodes
+    All nodes should have all objects in their local object store at the end of the test
     """
     nodes = PyDOOMS.getNumberOfNodes()
     objectsPerNode = 100
@@ -70,7 +71,7 @@ def SpreadTest2(workerID):
                 TestObject(i)
 
     PyDOOMS.barrier()
-    # The python dictionary appears to do non-blocking non-immediate inserts into the object store dict.
+    # The python dictionary appears to do non-blocking inserts into the object store dict.
     # Our PyDOOMS.get() function will wait for inserts to be made, but when checking the length of the dict
     # we must first wait for all inserts to complete
     time.sleep(0.02)
@@ -96,8 +97,6 @@ def GetTest1(workerID):
 
     for i in range(numOfObj):
         PyDOOMS.get(i).value
-
-    #logging.debug("Process " + str(myname) + " GetTest 1 finished successfully")
 
 
 
@@ -132,7 +131,7 @@ def ReadLoopTest1(workerID):
 
 def ReadLoopTest2(workerID):
     """
-    Tests reading from multiple shard objects
+    Tests reading from multiple shared objects before and after an object value has been changed
     Changes are synchronized over several barriers
     """
 
@@ -181,7 +180,7 @@ def ReadLoopTest2(workerID):
 
 def ReadLoopTest3(workerID):
     """
-    Tests reading from multiple shard objects
+    Tests reading from multiple shared objects before and after an object value has been changed.
     Changes are synchronized in one barrier
     """
 
@@ -251,7 +250,7 @@ def WriteLoopTest1(workerID):
 
 
 
-def WriteLoopTest2(workerID):
+'''def WriteLoopTest2(workerID):
     """
     Tests all nodes writing to different shared objects (one object is written by only one node)
     and all nodes reading from all shared objects
@@ -289,7 +288,7 @@ def WriteLoopTest2(workerID):
                          + str(oldObj2Value) + "," + str(PyDOOMS.get(2).value) + " "
                          + str(oldObj3Value) + "," + str(PyDOOMS.get(3).value) + " ")
         raise Exception
-
+'''
 
 
 def WriteLoopTest3(workerID):
@@ -450,82 +449,56 @@ def BarrierTest(workerID):
 
 
 
-def WorkerTest(workerID):
-    """
-    This test support multiple workers per node
-    """
-
-    if (workerID == 0):
-        for i in range(PyDOOMS.getNumberOfWorkers()):
-            TestObject(i)
-
-    PyDOOMS.barrier()
-    obj = PyDOOMS.get(workerID)
-    PyDOOMS.barrier()
-
-    obj.value = obj.value + 1
-    PyDOOMS.objectUpdated(obj,"value")
-
-    PyDOOMS.barrier()
-
-    if (workerID == 0):
-        for i in range(PyDOOMS.getNumberOfWorkers()):
-            if PyDOOMS.get(i).value != 1:
-                logging.debug("Worker " + str(workerID) + ", object " + str(i) + " has value " + str(PyDOOMS.get(i).value))
-                raise Exception
-
-
-
-
 def testSuite(workerID):
     BarrierTest(workerID)
-    #logging.debug("BarrierTest finished")
+    #logging.info("BarrierTest finished")
     reset()
 
     SpreadTest1(workerID)
-    #logging.debug("SpreadTest1 finished")
+    #logging.info("SpreadTest1 finished")
     reset()
 
     SpreadTest2(workerID)
-    #logging.debug("SpreadTest2 finished")
+    #logging.info("SpreadTest2 finished")
     reset()
 
     GetTest1(workerID)
-    #logging.debug("GetTest1 finished")
+    #logging.info("GetTest1 finished")
     reset()
 
     ReadLoopTest1(workerID)
-    #logging.debug("ReadLoopTest1 finished")
+    #logging.info("ReadLoopTest1 finished")
     reset()
 
     ReadLoopTest2(workerID)
-    #logging.debug("ReadLoopTest2 finished")
+    #logging.info("ReadLoopTest2 finished")
     reset()
 
     ReadLoopTest3(workerID)
-    #logging.debug("ReadLoopTest3 finished")
+    #logging.info("ReadLoopTest3 finished")
     reset()
 
     WriteLoopTest1(workerID)
-    #logging.debug("WriteLoopTest1 finished")
+    #logging.info("WriteLoopTest1 finished")
     reset()
 
     #WriteLoopTest2(workerID)
-    #logging.debug("WriteLoopTest2 finished")
+    #logging.info("WriteLoopTest2 finished")
     #reset()
 
     WriteLoopTest3(workerID)
-    #logging.debug("WriteLoopTest3 finished")
+    #logging.info("WriteLoopTest3 finished")
     reset()
 
     AttributeTest1(workerID)
-    #logging.debug("AttributeTest1 finished")
+    #logging.info("AttributeTest1 finished")
     reset()
 
     ObjectAttributeTest1(workerID)
+    #logging.info("ObjectAttributeTest1 finished")
 
     ShutdownTest(workerID)
-    #logging.debug("ShutdownTest finished")
+    #logging.info("ShutdownTest finished")
 
 
 try:
