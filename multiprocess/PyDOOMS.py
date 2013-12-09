@@ -12,6 +12,7 @@ from multiprocessing import Process, Manager
 # Setup logging
 path = os.path.abspath(os.path.dirname(__file__))
 logDir = os.path.join(path,'logs')
+filename = str(os.path.split(sys.argv[0][:-3])[1])
 
 if not os.path.exists(logDir):
     try:
@@ -22,10 +23,12 @@ if not os.path.exists(logDir):
         # only one will successfully create a directory,
         # the rest will raise OSError
 
-logging.basicConfig(#filename=logDir + '/' + str(os.path.split(sys.argv[0][:-3])[1]) + "_" + str(datetime.now())+ '.log',
+logging.basicConfig(filename=logDir + '/' + filename + "_" + str(datetime.now())+ '.log',
                     level=logging.DEBUG,
                     format='%(asctime)s,%(msecs)d (%(threadName)-2s) %(message)s',
                     datefmt='%M:%S')
+
+logging.info("PyDOOMS launching " + filename + " on " + str(sys.argv[1]) + " nodes with " + str(sys.argv[2]) + " workers per node")
 
 
 class SharedObject(object):
