@@ -1,48 +1,57 @@
-import math
+"""
+LU factorization implementation using PyDOOMS to share matrix blocks
+"""
+
 import time, logging
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from random import *
-from Matrix import Matrix
-from LU import LU
 from matrices import *
+from MatrixBlock import MatrixBlock
 import PyDOOMS
 
 
 size = 100
-blocksize = 10
-blocksPerSide = size/blocksize
+blockSize = 10
+blocksPerSide = size/blockSize
+
+matrixOffset = 0
+LOffset = blocksPerSide*blocksPerSide
+UOffset = blocksPerSide*blocksPerSide*2
+
 
 def printMatrix(matrix):
     for i in range(len(matrix)):
             print matrix[i]
 
+
 def multiplyMatrix(A, B):
     TB = zip(*B)
     return [[sum(ea*eb for ea,eb in zip(a,b)) for b in TB] for a in A]
-         
-def generateMatrix(size):
-    random_matrix = [[float(randrange(1,10)) for e in range(size)] for e in range(size)]
-    rm = multiplyMatrix(random_matrix, random_matrix)
-    return rm
- 
-def generateBlockMatrix(size):
-    matrix = []
-    for i in range(blocksPerSide):
-        row = []
-        for j in range(blocksPerSide):
-            row.append(generateMatrix(blocksize))
-        matrix.append(row)
-    return matrix
 
-def generateBlockZeroMatix(size):
-    matrix = []
+
+def generateSharedMatrixBlocks(size):
     for i in range(blocksPerSide):
-        row = []
         for j in range(blocksPerSide):
-            row.append([[0.0 for i in range(blocksize)] for j in range(blocksize)])
-        matrix.append(row)
-    return matrix
+            # Create input matrix
+            generateSharedBlock(matrixOffset + (i * blocksPerSide+j), i*blockSize, j*blockSize, blockSize)
+
+            # Create empty L matrix
+            generateSharedZeroBlock(LOffset + (i * blocksPerSide+j), i*blockSize, j*blockSize, blockSize)
+
+            # Create empty U matrix
+            generateSharedZeroBlock(UOffset + (i * blocksPerSide+j), i*blockSize, j*blockSize, blockSize)
+
+
+def generateSharedBlock(id, x, y, size):
+    random_block = [[float(randrange(1,10)) for e in range(size)] for e in range(size)]
+    MatrixBlock(id, x, y, multiplyMatrix(random_block, random_block))
+
+
+def generateSharedZeroBlock(id, x, y, size):
+    zero_block = [[0.0 for e in range(size)] for e in range(size)]
+    MatrixBlock(id, x, y, zero_block)
+
 
 def betterLU(A):
     L = [[0.0 for i in range(len(A))] for j in range(len(A))]
@@ -69,78 +78,133 @@ def betterLU(A):
     return L, U
 
 
-def lu(A):
-    """Decomposes a nxn matrix A by A=LU and returns L and U."""
-    n = len(A)
-    L = [[0.0] * n for i in xrange(n)]
-    U = [[0.0] * n for i in xrange(n)]
-    for j in xrange(n):
-        L[j][j] = 1.0
-        for i in xrange(j+1):
-            s1 = sum(U[k][j] * L[i][k] for k in xrange(i))
-            U[i][j] = A[i][j] - s1
-        for i in xrange(j, n):
-            s2 = sum(U[k][j] * L[i][k] for k in xrange(j))
-            L[i][j] = (A[i][j] - s2) / U[j][j]
-    return L, U
+def subtractMatrix(a,b):
+    return [map(float.__sub__, i, j) for i,j in zip(a,b)]
+
+
+def multiplyLU():
+    L = [[0.0 for i in range(size)] for j in range(size)]
+    U = [[0.0 for i in range(size)] for j in range(size)]
+
+    for id in range(LOffset, LOffset + blocksPerSide*blocksPerSide):
+        m = PyDOOMS.get(id)
+        #print "adding block",id,"with x,y",m.r,m.c
+        for r in range(len(m.block)):
+            for c in range(len(m.block)):
+                L[m.r + r][m.c + c] = m.block[r][c]
+
+    for id in range(UOffset, UOffset + blocksPerSide*blocksPerSide):
+        m = PyDOOMS.get(id)
+        #print "adding block",id,"with x,y",m.r,m.c
+        for r in range(len(m.block)):
+            for c in range(len(m.block)):
+                U[m.r + r][m.c + c] = m.block[r][c]
+
+    #print "L:"
+    #printMatrix(L)
+    #print "U:"
+    #printMatrix(U)
+    R = multiplyMatrix(L,U)
+    print "R:"
+    printMatrix(R)
+
+
+def printBlockMatrix(startingID):
+    M = [[0.0 for i in range(size)] for j in range(size)]
+
+    for id in range(startingID, startingID + blocksPerSide*blocksPerSide):
+        m = PyDOOMS.get(id)
+        #print "adding block",id,"with x,y",m.r,m.c
+        for r in range(len(m.block)):
+            for c in range(len(m.block)):
+                M[m.r + r][m.c + c] = m.block[r][c]
+
+    printMatrix(M)
+
 
 def workerList(size):
     list = []
-    for i in range(blocksPerSide*blocksPerSide-blocksPerSide):
-        list.append(i % PyDOOMS.getNumberOfWorkers())
+    for i in range(blocksPerSide+1):
+        for j in range(i*i):
+            list.append(j % PyDOOMS.getNumberOfWorkers())
     return list
 
 
+def getMatrixBlock(offset, i,j):
+    return PyDOOMS.get(offset + i * blocksPerSide + j)
 
+
+# Worker function
 def LUdecomp(workerID):
     if workerID==0:
         setupStart = time.time()
-        matrix = generateBlockMatrix(size)
-        Matrix(0, matrix)
-        l = generateBlockZeroMatix(size)
-        u = generateBlockZeroMatix(size)
 
-        for i in range(0,blocksPerSide):
-            L,U = betterLU(matrix[i][i])
-            #L,U = lu(matrix[i][i])
-            l[i][i] = L 
-            u[i][i] = U
+        generateSharedMatrixBlocks(size)
 
-        LU(1, l, u)
         print "Setup done in ", time.time() - setupStart, "seconds."
-
+        #print "Matrix:"
+        #printBlockMatrix(matrixOffset)
 
     start = time.time()
 
-    PyDOOMS.barrier()
-
-    m = PyDOOMS.get(0)
-    lu2 = PyDOOMS.get(1)
 
     for x in range(blocksPerSide):
 
+        if workerID == workerList.pop():
+            logging.debug("Worker" +str(workerID) + "working on diagonal " + str(x) + str(",") + str(x))
+            A = getMatrixBlock(matrixOffset, x, x)
+            L = getMatrixBlock(LOffset, x, x)
+            U = getMatrixBlock(UOffset, x, x)
 
+            l,u = betterLU(A.block)
+            L.block = l
+            U.block = u
 
-        for i in range(1+x,blocksPerSide):
+            PyDOOMS.objectUpdated(L, "block")
+            PyDOOMS.objectUpdated(U, "block")
+
+        PyDOOMS.barrier()
+
+        for i in range(x+1,blocksPerSide):
             if workerID == workerList.pop():
-                logging.debug("Worker" +str(workerID) + "is working - " + " i:" + str(i) +",x:"+ str(x))
-                #logging.debug("Worker: " + str(workerID) + )
-                lu2.L[i][x] = multiplyMatrix(m.matrix[i][x], invertMatrix(lu2.U[x][x]))
+                logging.debug("Worker" +str(workerID) + "working on U " + str(x) + str(",") + str(i))
+                A = getMatrixBlock(matrixOffset, x, i)
+                L = getMatrixBlock(LOffset, x, x)
+                U = getMatrixBlock(UOffset, x, i)
 
-        for j in range(1+x, blocksPerSide):
+                U.block = multiplyMatrix(invertMatrix(L.block), A.block)
+                PyDOOMS.objectUpdated(U, "block")
+
+        for j in range(x+1,blocksPerSide):
             if workerID == workerList.pop():
-                logging.debug("Worker" +str(workerID) + "is working - " + " x:" + str(x) +",j:"+ str(j))
-                #logging.debug("Worker: " + str(workerID) + " x:" + str(x) +",j:"+ str(j))
-                lu2.U[x][j] = multiplyMatrix(lu2.L[x][x], invertMatrix(m.matrix[x][j]))
+                logging.debug("Worker" +str(workerID) + "working on L " + str(j) + str(",") + str(x))
+                A = getMatrixBlock(matrixOffset, j, x)
+                L = getMatrixBlock(LOffset, j, x)
+                U = getMatrixBlock(UOffset, x, x)
 
+                L.block = multiplyMatrix(A.block, invertMatrix(U.block))
+                PyDOOMS.objectUpdated(L, "block")
 
-    PyDOOMS.objectUpdated(lu2, "L")
-    PyDOOMS.objectUpdated(lu2, "U")
-    PyDOOMS.barrier()
+        PyDOOMS.barrier()
+
+        for j in range(x+1, blocksPerSide):
+            for k in range(x+1, blocksPerSide):
+                if workerID == workerList.pop():
+                    logging.debug("Worker" +str(workerID) + "working on sub-block " + str(k) + str(",") + str(j))
+                    A = getMatrixBlock(matrixOffset, k, j)
+                    L = getMatrixBlock(LOffset, k, x)
+                    U = getMatrixBlock(UOffset, x, j)
+
+                    A.block = subtractMatrix(A.block, multiplyMatrix(L.block, U.block))
+                    PyDOOMS.objectUpdated(A, "block")
+
+        PyDOOMS.barrier()
 
     if workerID == 0:
-        lumatri = PyDOOMS.get(1)
         print "Done in ", time.time() - start, "seconds."
+        #multiplyLU()
+
+
 
 workerList = workerList(size)
 
