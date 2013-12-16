@@ -58,7 +58,7 @@ def RedBlackGaussSeidel(workerID, matrixSize):
                     workerInfo.error += abs(centerRow.row[column] - newValue)
                     centerRow.row[column] = newValue
 
-                PyDOOMS.objectUpdated(centerRow, "row")
+                PyDOOMS.    objectUpdated(centerRow, "row")
 
             PyDOOMS.objectUpdated(workerInfo, "error")
             PyDOOMS.barrier()

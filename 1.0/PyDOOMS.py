@@ -23,7 +23,7 @@ if not os.path.exists(logDir):
         # only one will successfully create a directory,
         # the rest will raise OSError
 
-logging.basicConfig(filename=logDir + '/' + filename + "_" + str(datetime.now())+ '.log',
+logging.basicConfig(#filename=logDir + '/' + filename + "_" + str(datetime.now())+ '.log',
                     level=logging.DEBUG,
                     format='%(asctime)s,%(msecs)d (%(threadName)-2s) %(message)s',
                     datefmt='%M:%S')
@@ -86,6 +86,7 @@ def get(id):
             else:
                 raise SharedObjectError('Shared object with ID: ' + str(id) + ' is None')
         except KeyError:
+            # subscribe to incoming update notification?
             time.sleep(0.0001)
 
     raise SharedObjectError('No shared object with ID: ' + str(id) + ' found')

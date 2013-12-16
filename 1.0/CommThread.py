@@ -245,7 +245,7 @@ class CommThread(threading.Thread):
                         self.barrierAck()
 
                     else:
-                        time.sleep(0.0000001)
+                        time.sleep(0.000001)
 
             except Exception as e:
                 logging.exception(e)

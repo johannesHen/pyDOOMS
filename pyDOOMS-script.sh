@@ -3,7 +3,7 @@ MONTY=""
 TEST=""
 totaltime=0
 verbose=false
-file="monte_carlo.py"
+file=$4
 
 while getopts "vf:" opt; do
   case $opt in
@@ -42,15 +42,6 @@ echo $commandStr
 
 for i in `seq 1 $1`;
 do
-test1=$($commandStr)
-echo $test1
-
-totaltime=$(echo $totaltime + $test1 | bc)
+$($commandStr)
+echo "Done with iteration $i"
 done
-
-totaltime=totaltime | bc
-
-averagetime=$(echo $totaltime / $1 | bc -l)
-
-#echo $totaltime 
-echo "Average calculation time is: $averagetime seconds"
